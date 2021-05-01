@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"math"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/theme"
@@ -32,7 +34,7 @@ func main() {
 	}
 
 	a := app.New()
-	a.Settings().SetTheme(theme.DarkTheme())
+	a.Settings().SetTheme(&myTheme{})
 	var w fyne.Window
 	if drv, ok := fyne.CurrentApp().Driver().(desktop.Driver); ok {
 		w = drv.CreateSplashWindow()
@@ -98,16 +100,16 @@ func createSearchWidget(snippets []*snippet, snippetsText []string, onSubmit fun
 		func() fyne.CanvasObject {
 			label := widget.NewLabel("tmpl lbl")
 			label.TextStyle.Bold = true
-			content := widget.NewLabel("tmpl content")
-			content.Wrapping = fyne.TextWrapBreak
+			content := canvas.NewText("tmpl content", color.RGBA{128, 128, 128, 255})
+			content.TextStyle.Monospace = true
 			return container.NewHBox(label, content)
 		},
 		func(id widget.ListItemID, item fyne.CanvasObject) {
 			container := item.(*fyne.Container)
 			label := container.Objects[0].(*widget.Label)
-			content := container.Objects[1].(*widget.Label)
-			label.SetText(filteredSnippets[id].label + ":")
-			content.SetText(strings.ReplaceAll(filteredSnippets[id].content, "\n", "\\n"))
+			content := container.Objects[1].(*canvas.Text)
+			label.SetText(filteredSnippets[id].label)
+			content.Text = strings.ReplaceAll(filteredSnippets[id].content, "\n", "\\n")
 			ellipsis(container, content)
 		},
 	)
@@ -196,7 +198,7 @@ func (e *snippetEntry) TypedKey(key *fyne.KeyEvent) {
 	}
 }
 
-func ellipsis(container *fyne.Container, label *widget.Label) {
+func ellipsis(container *fyne.Container, label *canvas.Text) {
 	w := fyne.MeasureText(string(label.Text), theme.TextSize(), label.TextStyle).Width
 	if label.Position().X+w > container.Size().Width {
 		wellipsis := fyne.MeasureText(string("..."), theme.TextSize(), label.TextStyle).Width
@@ -216,4 +218,25 @@ func ellipsis(container *fyne.Container, label *widget.Label) {
 		label.Text += "..."
 		label.Refresh()
 	}
+}
+
+type myTheme struct{}
+
+func (m myTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
+	return theme.DarkTheme().Color(name, theme.VariantDark)
+}
+
+func (m myTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
+	return theme.DarkTheme().Icon(name)
+}
+
+func (m myTheme) Font(style fyne.TextStyle) fyne.Resource {
+	return theme.DarkTheme().Font(style)
+}
+
+func (m myTheme) Size(name fyne.ThemeSizeName) float32 {
+	if name == theme.SizeNamePadding {
+		return 2
+	}
+	return theme.DarkTheme().Size(name)
 }

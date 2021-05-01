@@ -4,3 +4,4 @@ snippet.exe
 pkg_tok
 upx
 upx*.tar.xz
+snippets.yml
