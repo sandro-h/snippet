@@ -1,4 +1,4 @@
-BASE_VERSION=0.0.1
+BASE_VERSION=0.0.2
 REPO_OWNER=sandro-h
 BUILD_CENTOS_IMAGE_VERSION=0.0.1
 BUILD_CENTOS_IMAGE_TAG=ghcr.io/${REPO_OWNER}/snippet-centos-build:${BUILD_CENTOS_IMAGE_VERSION}
@@ -75,7 +75,7 @@ print-version:
 
 .PHONY: build-all-optimized
 build-all-optimized: EXTRA_BUILD_ARGS=-ldflags='-s -w'
-build-all-optimized: build-linux build-centos # build-windows 
+build-all-optimized: build-linux build-centos build-windows 
 
 upx:
 	wget https://github.com/upx/upx/releases/download/v3.96/upx-3.96-amd64_linux.tar.xz
@@ -87,4 +87,4 @@ compress-binaries: upx
 	chmod +x snippet snippet-centos
 	upx/upx -q --brute snippet
 	upx/upx -q --brute snippet-centos
-	# upx/upx -q --brute snippet.exe
+	upx/upx -q --brute snippet.exe
