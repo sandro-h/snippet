@@ -1,23 +1,5 @@
 # snippet
 
-## Installation
-
-### Redhat
-
-#### Prerequisites
-
-libpng 1.6 (RHEL7 only has 1.5 package):
-
-```shell
-wget https://sourceforge.net/projects/libpng/files/libpng16/1.6.37/libpng-1.6.37.tar.gz
-tar xvf libpng-1.6.37.tar.gz
-cd libpng-1.6.37/
-./configure 
-make
-sudo make install
-sudo ln -s /usr/local/lib/libpng16.so.16 /usr/lib64/libpng16.so.16
-```
-
 ## Development
 
 ### Windows cross-compilation
