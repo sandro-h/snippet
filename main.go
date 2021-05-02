@@ -19,14 +19,38 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type config struct {
+	specialChars    map[string]specialChar
+	specialCharList string
+}
+
+type specialChar struct {
+	Character  string `yaml:"character"`
+	Key        string `yaml:"key"`
+	CommandKey string `yaml:"command"`
+}
+
 type snippet struct {
 	label   string
 	content string
 }
 
+var cfg *config
+
 func main() {
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	configFile := filepath.Join(dir, "config.yml")
+	if _, err := os.Stat(configFile); !os.IsNotExist(err) {
+		cfg, err = loadConfig(configFile)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	snippetsFile := filepath.Join(dir, "snippets.yml")
+	if _, err := os.Stat(snippetsFile); os.IsNotExist(err) {
+		os.Create(snippetsFile)
+	}
 	snippets, err := loadSnippets(snippetsFile)
 	if err != nil {
 		panic(err)
@@ -70,6 +94,32 @@ func main() {
 	go listenForHotkeys(w)
 
 	w.ShowAndRun()
+}
+
+func loadConfig(configFile string) (*config, error) {
+	bytes, err := os.ReadFile(configFile)
+	if err != nil {
+		return nil, err
+	}
+
+	var rawCfg struct {
+		SpecialCharList []specialChar `yaml:"special_chars"`
+	}
+	err = yaml.Unmarshal(bytes, &rawCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := config{
+		specialChars:    map[string]specialChar{},
+		specialCharList: "",
+	}
+	for _, s := range rawCfg.SpecialCharList {
+		cfg.specialChars[s.Character] = s
+		cfg.specialCharList += s.Character
+	}
+
+	return &cfg, nil
 }
 
 func loadSnippets(snippetsFile string) ([]*snippet, error) {
@@ -147,27 +197,14 @@ func typeSnippet(content string) {
 	}
 }
 
-type specialKey struct {
-	key        string
-	commandKey string
-}
-
 func typeStr(str string) {
 	// robotgo's linux implementation for typing cannot deal with special keys on non-standard keyboard layouts (e.g. Swiss German),
 	// so handle such special keys explicitly.
 	if runtime.GOOS == "linux" {
-		specialKeys := map[string]specialKey{
-			"/": {"7", "shift"},
-			"#": {"3", "gralt"},
-		}
-		specialChars := ""
-		for k := range specialKeys {
-			specialChars += k
-		}
-		parts := splitSpecials(str, specialChars)
+		parts := splitSpecials(str, cfg.specialCharList)
 		for _, p := range parts {
-			if len(p) == 1 && strings.Index(specialChars, p) > -1 {
-				typeSpecialKey(specialKeys[p])
+			if len(p) == 1 && strings.Index(cfg.specialCharList, p) > -1 {
+				typeSpecialKey(cfg.specialChars[p])
 			} else {
 				robotgo.TypeStr(p)
 			}
@@ -177,13 +214,13 @@ func typeStr(str string) {
 	}
 }
 
-func typeSpecialKey(key specialKey) {
-	if key.commandKey == "gralt" {
+func typeSpecialKey(key specialChar) {
+	if key.CommandKey == "gralt" {
 		robotgo.KeyToggle("gralt", "down")
-		robotgo.KeyTap(key.key)
+		robotgo.KeyTap(key.Key)
 		robotgo.KeyToggle("gralt", "up")
 	} else {
-		robotgo.KeyTap(key.key, key.commandKey)
+		robotgo.KeyTap(key.Key, key.CommandKey)
 	}
 }
 

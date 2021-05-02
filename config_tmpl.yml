@@ -1,0 +1,9 @@
+---
+
+# special_chars:
+#   - character: /
+#     key: 7
+#     command: shift
+#   - character: "#"
+#     key: 3
+#     command: gralt
