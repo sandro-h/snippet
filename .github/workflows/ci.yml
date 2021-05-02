@@ -34,9 +34,3 @@ jobs:
 
     - name: Build Linux
       run: make build-linux
-
-    - name: Build Windows
-      run: make build-windows
-
-    - name: Build Centos
-      run: make build-centos
