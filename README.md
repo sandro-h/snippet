@@ -1,5 +1,7 @@
 # snippet
 
+[![CI](https://github.com/sandro-h/snippet/actions/workflows/ci.yml/badge.svg)](https://github.com/sandro-h/snippet/actions/workflows/ci.yml)
+
 Tiny cross-platform widget to insert snippets into the terminal, editor, etc.
 
 ![Snippet](screenshot.png)
