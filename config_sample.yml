@@ -1,12 +1,14 @@
 ---
 
-# Type the following characters with a particular key combination.
-# Useful for non-english keyboard layouts where the typing automation
-# produces incorrect results.
-# special_chars:
-#   - character: /
-#     key: 7
-#     command: shift
-#   - character: "#"
-#     key: 3
-#     command: gralt
+# Make snippet type the following characters with a particular key combination ON LINUX ONLY.
+# Useful for non-english keyboard layouts where the typing automation somtimes
+# produces incorrect results on Linux.
+# Possible key and command values: see https://github.com/go-vgo/robotgo/blob/master/docs/keys.md
+# Additionally, snippet supports "gralt" command.
+special_chars:
+  - character: /
+    key: 7
+    command: shift
+  - character: "#"
+    key: 3
+    command: gralt
