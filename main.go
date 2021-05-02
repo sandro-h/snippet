@@ -16,6 +16,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-vgo/robotgo"
 	hook "github.com/robotn/gohook"
+	"github.com/sandro-h/snippet/util"
 	"gopkg.in/yaml.v2"
 )
 
@@ -201,7 +202,7 @@ func typeStr(str string) {
 	// robotgo's linux implementation for typing cannot deal with special keys on non-standard keyboard layouts (e.g. Swiss German),
 	// so handle such special keys explicitly.
 	if runtime.GOOS == "linux" {
-		parts := splitSpecials(str, cfg.specialCharList)
+		parts := util.SplitSpecials(str, cfg.specialCharList)
 		for _, p := range parts {
 			if len(p) == 1 && strings.Index(cfg.specialCharList, p) > -1 {
 				typeSpecialKey(cfg.specialChars[p])
@@ -222,30 +223,6 @@ func typeSpecialKey(key specialChar) {
 	} else {
 		robotgo.KeyTap(key.Key, key.CommandKey)
 	}
-}
-
-func splitSpecials(str string, specials string) []string {
-	var parts []string
-	s := 0
-	e := 0
-	for i, c := range str {
-		if strings.IndexRune(specials, c) > -1 {
-			if e > s {
-				parts = append(parts, str[s:e])
-			}
-			parts = append(parts, string(c))
-			s = i + 1
-			e = s
-		} else {
-			e++
-		}
-	}
-
-	if e > s {
-		parts = append(parts, str[s:e])
-	}
-
-	return parts
 }
 
 type myTheme struct{}

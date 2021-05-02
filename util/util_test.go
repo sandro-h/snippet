@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"testing"
@@ -22,7 +22,7 @@ func TestSplitSpecial(t *testing.T) {
 	specials := "/#"
 
 	for _, c := range cases {
-		actual := splitSpecials(c.in, specials)
+		actual := SplitSpecials(c.in, specials)
 		assert.Equal(t, c.out, actual)
 	}
 }
