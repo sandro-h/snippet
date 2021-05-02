@@ -12,6 +12,10 @@ chmod -R u+w $ROBOTGO_DIR/key
 [ -f $ROBOTGO_DIR/key/keycode.h.orig ] || cp $ROBOTGO_DIR/key/keycode.h $ROBOTGO_DIR/key/keycode.h.orig
 if ! grep K_GRALT $ROBOTGO_DIR/key/keycode.h > /dev/null; then
     sed -i 's/K_RALT = XK_Alt_R,/\0\nK_GRALT = XK_ISO_Level3_Shift,/' $ROBOTGO_DIR/key/keycode.h
+    # These are only needed so it compiles (since goKey.h will reference a K_GRALT):
+    sed -i 's/K_RALT = kVK_RightOption,/\0\nK_GRALT = kVK_RightOption,/' $ROBOTGO_DIR/key/keycode.h
+    sed -i 's/K_RALT = VK_RMENU,/\0\nK_GRALT = VK_RMENU,/' $ROBOTGO_DIR/key/keycode.h
+
     echo "Patched $ROBOTGO_DIR/key/keycode.h:"
     diff $ROBOTGO_DIR/key/keycode.h.orig $ROBOTGO_DIR/key/keycode.h || true
     rebuild=true
