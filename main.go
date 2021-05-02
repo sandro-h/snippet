@@ -62,7 +62,7 @@ func main() {
 	split := container.NewVSplit(search.entry, search.list)
 	split.Offset = 0
 	w.SetContent(split)
-	w.Resize(fyne.NewSize(400, 400))
+	w.Resize(fyne.NewSize(400, 250))
 	w.Canvas().Focus(search.entry)
 	w.CenterOnScreen()
 
