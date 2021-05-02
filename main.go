@@ -1,23 +1,19 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
-	"math"
+	"log"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
+	"github.com/fsnotify/fsnotify"
 	"github.com/go-vgo/robotgo"
-	"github.com/lithammer/fuzzysearch/fuzzy"
 	hook "github.com/robotn/gohook"
 	"gopkg.in/yaml.v2"
 )
@@ -28,7 +24,9 @@ type snippet struct {
 }
 
 func main() {
-	snippets, snippetsText, err := loadSnippets()
+	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	snippetsFile := filepath.Join(dir, "snippets.yml")
+	snippets, err := loadSnippets(snippetsFile)
 	if err != nil {
 		panic(err)
 	}
@@ -42,8 +40,7 @@ func main() {
 		w = a.NewWindow("")
 	}
 
-	list, entry := createSearchWidget(snippets,
-		snippetsText,
+	search := newSearchWidget(snippets,
 		func(snippet *snippet) {
 			w.Hide()
 			typeSnippet(snippet.content)
@@ -53,11 +50,20 @@ func main() {
 		},
 	)
 
-	split := container.NewVSplit(entry, list)
+	go watchSnippets(snippetsFile, func() {
+		snippets, err := loadSnippets(snippetsFile)
+		if err != nil {
+			log.Println("error reloading snippets.yml:", err)
+			return
+		}
+		search.setSnippets(snippets)
+	})
+
+	split := container.NewVSplit(search.entry, search.list)
 	split.Offset = 0
 	w.SetContent(split)
 	w.Resize(fyne.NewSize(400, 400))
-	w.Canvas().Focus(entry)
+	w.Canvas().Focus(search.entry)
 	w.CenterOnScreen()
 
 	go listenForHotkeys(w)
@@ -65,96 +71,56 @@ func main() {
 	w.ShowAndRun()
 }
 
-func loadSnippets() ([]*snippet, []string, error) {
-	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	bytes, err := os.ReadFile(filepath.Join(dir, "snippets.yml"))
+func loadSnippets(snippetsFile string) ([]*snippet, error) {
+	bytes, err := os.ReadFile(snippetsFile)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	var rawSnippets map[string]string
 	err = yaml.Unmarshal(bytes, &rawSnippets)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	var snippets []*snippet
-	var snippetsText []string
 	for k, v := range rawSnippets {
 		snippets = append(snippets, &snippet{
 			label:   k,
 			content: v,
 		})
-		snippetsText = append(snippetsText, fmt.Sprintf("%s: %s", k, v))
 	}
-	return snippets, snippetsText, nil
+	return snippets, nil
 }
 
-func createSearchWidget(snippets []*snippet, snippetsText []string, onSubmit func(snippet *snippet), onCancel func()) (*widget.List, *snippetEntry) {
-	filteredSnippets := snippets
-
-	list := widget.NewList(
-		func() int {
-			return len(filteredSnippets)
-		},
-		func() fyne.CanvasObject {
-			label := widget.NewLabel("tmpl lbl")
-			label.TextStyle.Bold = true
-			content := canvas.NewText("tmpl content", color.RGBA{128, 128, 128, 255})
-			content.TextStyle.Monospace = true
-			return container.NewHBox(label, content)
-		},
-		func(id widget.ListItemID, item fyne.CanvasObject) {
-			container := item.(*fyne.Container)
-			label := container.Objects[0].(*widget.Label)
-			content := container.Objects[1].(*canvas.Text)
-			label.SetText(filteredSnippets[id].label)
-			content.Text = strings.ReplaceAll(filteredSnippets[id].content, "\n", "\\n")
-			ellipsis(container, content)
-		},
-	)
-
-	var selectedID widget.ListItemID = -1
-	list.OnSelected = func(id widget.ListItemID) {
-		selectedID = id
+func watchSnippets(snippetsFile string, onModified func()) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		panic(err)
 	}
-	list.Select(0)
+	defer watcher.Close()
 
-	entry := newSnippetEntry()
-
-	resetSearch := func() {
-		entry.Text = ""
-		entry.OnChanged(entry.Text)
-		list.Select(0)
+	err = watcher.Add(snippetsFile)
+	if err != nil {
+		panic(err)
 	}
 
-	entry.onTypedKey = func(key *fyne.KeyEvent) {
-		if key.Name == "Down" {
-			list.Select((selectedID + 1) % len(filteredSnippets))
-		} else if key.Name == "Up" {
-			list.Select((len(filteredSnippets) + selectedID - 1) % len(filteredSnippets))
-		} else if key.Name == "Return" {
-			if selectedID >= 0 && selectedID < len(filteredSnippets) {
-				onSubmit(filteredSnippets[selectedID])
-				resetSearch()
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
 			}
-		} else if key.Name == "Escape" {
-			onCancel()
-			resetSearch()
+			if event.Op&fsnotify.Write == fsnotify.Write {
+				onModified()
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			log.Println("error:", err)
 		}
 	}
-	entry.OnChanged = func(s string) {
-		ranked := fuzzy.RankFindFold(s, snippetsText)
-		sort.Sort(ranked)
-		filteredSnippets = make([]*snippet, 0)
-		for _, r := range ranked {
-			filteredSnippets = append(filteredSnippets, snippets[r.OriginalIndex])
-		}
-		list.Refresh()
-		list.Select(0)
-	}
-
-	return list, entry
 }
 
 func listenForHotkeys(w fyne.Window) {
@@ -177,46 +143,6 @@ func typeSnippet(content string) {
 		}
 		robotgo.TypeStr(l)
 		first = false
-	}
-}
-
-type snippetEntry struct {
-	widget.Entry
-	onTypedKey func(key *fyne.KeyEvent)
-}
-
-func newSnippetEntry() *snippetEntry {
-	e := &snippetEntry{}
-	e.ExtendBaseWidget(e)
-	return e
-}
-
-func (e *snippetEntry) TypedKey(key *fyne.KeyEvent) {
-	e.Entry.TypedKey(key)
-	if e.onTypedKey != nil {
-		e.onTypedKey(key)
-	}
-}
-
-func ellipsis(container *fyne.Container, label *canvas.Text) {
-	w := fyne.MeasureText(string(label.Text), theme.TextSize(), label.TextStyle).Width
-	if label.Position().X+w > container.Size().Width {
-		wellipsis := fyne.MeasureText(string("..."), theme.TextSize(), label.TextStyle).Width
-		wmax := container.Size().Width - wellipsis
-		wpc := float64(w) / float64(len(label.Text))
-		k := 0
-		for label.Position().X+w > wmax {
-			overlap := label.Position().X + w - wmax
-			overlapc := int(math.Ceil(math.Max(1, float64(overlap)/wpc)))
-			if overlapc > len(label.Text) {
-				break
-			}
-			label.Text = label.Text[:len(label.Text)-overlapc]
-			w = fyne.MeasureText(string(label.Text), theme.TextSize(), label.TextStyle).Width
-			k++
-		}
-		label.Text += "..."
-		label.Refresh()
 	}
 }
 

@@ -36,7 +36,7 @@ build-centos: ensure-centos-image
 
 .PHONY: build-windows
 build-windows:
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build  ${EXTRA_BUILD_ARGS}
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build -ldflags "-H=windowsgui ${EXTRA_WIN_LDFLAGS}" ${EXTRA_WIN_BUILD_ARGS}
 
 .PHONY: build-linux
 build-linux:
@@ -75,7 +75,8 @@ print-version:
 
 .PHONY: build-all-optimized
 build-all-optimized: EXTRA_BUILD_ARGS=-ldflags='-s -w'
-build-all-optimized: build-linux build-centos build-windows 
+build-all-optimized: EXTRA_WIN_LDFLAGS=-s -w
+build-all-optimized: build-linux build-centos build-windows
 
 upx:
 	wget https://github.com/upx/upx/releases/download/v3.96/upx-3.96-amd64_linux.tar.xz
