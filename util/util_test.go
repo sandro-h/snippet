@@ -26,3 +26,8 @@ func TestSplitSpecial(t *testing.T) {
 		assert.Equal(t, c.out, actual)
 	}
 }
+
+func TestSplitSpecialNoList(t *testing.T) {
+	actual := SplitSpecials("hello/world", "")
+	assert.Equal(t, []string{"hello/world"}, actual)
+}

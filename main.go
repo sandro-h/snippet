@@ -36,7 +36,10 @@ type snippet struct {
 	content string
 }
 
-var cfg *config
+var cfg *config = &config{
+	specialChars:    map[string]specialChar{},
+	specialCharList: "",
+}
 
 func main() {
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
