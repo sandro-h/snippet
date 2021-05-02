@@ -2,6 +2,8 @@
 
 Tiny cross-platform widget to insert snippets into the terminal, editor, etc.
 
+![Snippet](screenshot.png)
+
 ## Usage
 
 1. `Alt + q` to show widget
@@ -10,6 +12,10 @@ Tiny cross-platform widget to insert snippets into the terminal, editor, etc.
 4. Press `enter` to choose snippet. Widget disappears and snippet is typed in active window.
 5. Press `escape` to cancel search and hide widget again.
 6. Press `Alt + F4` while widget is active to close it for good.
+
+Snippets are stored in `snippet.yml` file, see [snippet_sample.yml](snippet_sample.yml).
+
+Optional configuration is stored in `config.yml` file, see [config_sample.yml](config_sample.yml).
 
 ## Development
 

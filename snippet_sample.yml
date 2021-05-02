@@ -1,0 +1,9 @@
+---
+
+bash script dir: SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+foo: bar
+lorem: |
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  Nulla dignissim dolor efficitur sem auctor pharetra.
+  Duis eu neque odio.
+shebang: "#!/usr/bin/bash"
