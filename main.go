@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -141,9 +142,73 @@ func typeSnippet(content string) {
 			robotgo.MicroSleep(100)
 			robotgo.KeyTap("enter")
 		}
-		robotgo.TypeStr(l)
+		typeStr(l)
 		first = false
 	}
+}
+
+type specialKey struct {
+	key        string
+	commandKey string
+}
+
+func typeStr(str string) {
+	// robotgo's linux implementation for typing cannot deal with special keys on non-standard keyboard layouts (e.g. Swiss German),
+	// so handle such special keys explicitly.
+	if runtime.GOOS == "linux" {
+		specialKeys := map[string]specialKey{
+			"/": {"7", "shift"},
+			"#": {"3", "gralt"},
+		}
+		specialChars := ""
+		for k := range specialKeys {
+			specialChars += k
+		}
+		parts := splitSpecials(str, specialChars)
+		for _, p := range parts {
+			if len(p) == 1 && strings.Index(specialChars, p) > -1 {
+				typeSpecialKey(specialKeys[p])
+			} else {
+				robotgo.TypeStr(p)
+			}
+		}
+	} else {
+		robotgo.TypeStr(str)
+	}
+}
+
+func typeSpecialKey(key specialKey) {
+	if key.commandKey == "gralt" {
+		robotgo.KeyToggle("gralt", "down")
+		robotgo.KeyTap(key.key)
+		robotgo.KeyToggle("gralt", "up")
+	} else {
+		robotgo.KeyTap(key.key, key.commandKey)
+	}
+}
+
+func splitSpecials(str string, specials string) []string {
+	var parts []string
+	s := 0
+	e := 0
+	for i, c := range str {
+		if strings.IndexRune(specials, c) > -1 {
+			if e > s {
+				parts = append(parts, str[s:e])
+			}
+			parts = append(parts, string(c))
+			s = i + 1
+			e = s
+		} else {
+			e++
+		}
+	}
+
+	if e > s {
+		parts = append(parts, str[s:e])
+	}
+
+	return parts
 }
 
 type myTheme struct{}

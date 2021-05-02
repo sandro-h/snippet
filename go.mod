@@ -8,5 +8,6 @@ require (
 	github.com/go-vgo/robotgo v0.93.1
 	github.com/lithammer/fuzzysearch v1.1.2
 	github.com/robotn/gohook v0.30.5
+	github.com/stretchr/testify v1.5.1 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 )

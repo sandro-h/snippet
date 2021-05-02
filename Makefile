@@ -15,6 +15,10 @@ ifeq ($(PUSH_IMAGE), true)
 	docker push ${BUILD_CENTOS_IMAGE_TAG}
 endif
 
+.PHONY: patch-robotgo
+patch-robotgo:
+	./patch_robotgo.sh
+
 .PHONY: build-centos-image
 build-centos-image:
 	docker build \
@@ -32,14 +36,14 @@ build-centos: ensure-centos-image
 		-e DEV_UID=$$(id -u) \
 		-w /src \
 		${BUILD_CENTOS_IMAGE_TAG} \
-		"/usr/local/go/bin/go build -o snippet-centos ${EXTRA_BUILD_ARGS} && chown \$$DEV_UID snippet-centos"
+		"export PATH=/usr/local/go/bin:\$$PATH && ./patch_robotgo.sh && go build -o snippet-centos ${EXTRA_BUILD_ARGS} && chown \$$DEV_UID snippet-centos"
 
 .PHONY: build-windows
-build-windows:
+build-windows: patch-robotgo
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build -ldflags "-H=windowsgui ${EXTRA_WIN_LDFLAGS}" ${EXTRA_WIN_BUILD_ARGS}
 
 .PHONY: build-linux
-build-linux:
+build-linux: patch-robotgo
 	go build ${EXTRA_BUILD_ARGS}
 
 .PHONY: test
