@@ -1,0 +1,35 @@
+---
+# Config for Linux with de_ch keyboard layout.
+# NOTE: also have to patch layout to use dollar sign instead of sterling,
+# for some reason it always uses sterling for dollar, even though that should be
+# shift+$.
+# sudo vim /usr/share/X11/xkb/symbols/ch
+# < key <BKSL> { [     dollar,   sterling,   braceright             ] };
+# > key <BKSL> { [     dollar,   dollar,   braceright             ] };
+# setxkbmap
+
+special_chars:
+  - character: /
+    key: 7
+    command: shift
+  - character: "#"
+    key: 3
+    command: gralt
+  - character: =
+    key: 0
+    command: shift
+  - character: '"'
+    key: 2
+    command: shift
+  - character: '{'
+    key: '{'
+    command: gralt
+  - character: '}'
+    key: $
+    command: gralt
+  - character: '['
+    key: '['
+    command: gralt
+  - character: ']'
+    key: ']'
+    command: gralt
