@@ -1,11 +1,13 @@
 ---
-# Config for Linux with de_ch keyboard layout.
-# NOTE: also have to patch layout to use dollar sign instead of sterling,
-# for some reason it always uses sterling for dollar, even though that should be
-# shift+$.
+# Note, also have to patch layout to assign some weird characters to different keys,
+# because robotgo can't handle them.
 # sudo vim /usr/share/X11/xkb/symbols/ch
 # < key <BKSL> { [     dollar,   sterling,   braceright             ] };
 # > key <BKSL> { [     dollar,   dollar,   braceright             ] };
+# < key <AE11> { [ apostrophe,   question,   dead_acute             ] };
+# > key <AE11> { [ apostrophe,   question,   apostrophe             ] };
+# < key <AE10> { [          0,      equal                           ] };
+# > key <AE10> { [          0,      equal, dead_circumflex          ] };
 # setxkbmap
 
 special_chars:
@@ -21,6 +23,9 @@ special_chars:
   - character: '"'
     key: 2
     command: shift
+  - character: "'"
+    key: "?"
+    command: gralt
   - character: '{'
     key: '{'
     command: gralt
@@ -32,4 +37,17 @@ special_chars:
     command: gralt
   - character: ']'
     key: ']'
+    command: gralt
+  - character: '|'
+    key: 7
+    command: gralt
+  - character: '^'
+    key: '0'
+    command: gralt
+    space_after: true
+  - character: ';'
+    key: ','
+    command: shift
+  - character: '\'
+    key: '<'
     command: gralt

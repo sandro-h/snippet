@@ -29,6 +29,7 @@ type specialChar struct {
 	Character  string `yaml:"character"`
 	Key        string `yaml:"key"`
 	CommandKey string `yaml:"command"`
+	SpaceAfter bool   `yaml:"space_after"`
 }
 
 type snippet struct {
@@ -225,6 +226,10 @@ func typeSpecialKey(key specialChar) {
 		robotgo.KeyToggle("gralt", "up")
 	} else {
 		robotgo.KeyTap(key.Key, key.CommandKey)
+	}
+
+	if key.SpaceAfter {
+		robotgo.KeyTap("space")
 	}
 }
 
