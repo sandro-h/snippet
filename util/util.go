@@ -1,6 +1,10 @@
 package util
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/sahilm/fuzzy"
+)
 
 // SplitSpecials splits the string according to the individual special characters
 // in the specials parameter. The found special characters are also included in the result.
@@ -9,7 +13,7 @@ func SplitSpecials(str string, specials string) []string {
 	s := 0
 	e := 0
 	for i, c := range str {
-		if strings.IndexRune(specials, c) > -1 {
+		if strings.ContainsRune(specials, c) {
 			if e > s {
 				parts = append(parts, str[s:e])
 			}
@@ -26,4 +30,21 @@ func SplitSpecials(str string, specials string) []string {
 	}
 
 	return parts
+}
+
+// SearchFuzzy searches for source in the list of targets using a fuzzy
+// algorithm. The result is ordered from best to worst fitting match.
+func SearchFuzzy(source string, targets []string) fuzzy.Matches {
+	if source == "" {
+		var res fuzzy.Matches
+		for i, t := range targets {
+			res = append(res, fuzzy.Match{
+				Str:   t,
+				Index: i,
+				Score: 0,
+			})
+		}
+		return res
+	}
+	return fuzzy.Find(source, targets)
 }

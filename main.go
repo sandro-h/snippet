@@ -207,7 +207,7 @@ func typeStr(str string) {
 	if runtime.GOOS == "linux" {
 		parts := util.SplitSpecials(str, cfg.specialCharList)
 		for _, p := range parts {
-			if len(p) == 1 && strings.Index(cfg.specialCharList, p) > -1 {
+			if len(p) == 1 && strings.Contains(cfg.specialCharList, p) {
 				typeSpecialKey(cfg.specialChars[p])
 			} else {
 				robotgo.TypeStr(p)

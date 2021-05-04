@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image/color"
 	"math"
-	"sort"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -12,7 +11,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"github.com/lithammer/fuzzysearch/fuzzy"
+	"github.com/sandro-h/snippet/util"
 )
 
 type searchWidget struct {
@@ -97,11 +96,10 @@ func (w *searchWidget) createEntry() {
 		}
 	}
 	w.entry.OnChanged = func(s string) {
-		ranked := fuzzy.RankFindFold(s, w.snippetsText)
-		sort.Sort(ranked)
+		matches := util.SearchFuzzy(s, w.snippetsText)
 		w.filteredSnippets = make([]*snippet, 0)
-		for _, r := range ranked {
-			w.filteredSnippets = append(w.filteredSnippets, w.snippets[r.OriginalIndex])
+		for _, m := range matches {
+			w.filteredSnippets = append(w.filteredSnippets, w.snippets[m.Index])
 		}
 		w.list.Refresh()
 		w.list.Select(0)
