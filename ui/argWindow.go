@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"fyne.io/fyne/v2"
@@ -6,19 +6,22 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-type argWindow struct {
+// ArgWindow provides a set of input boxes to fill out arguments of a snippet.
+type ArgWindow struct {
 	win          fyne.Window
 	entries      []*typeableEntry
 	focusedIndex int
 }
 
-func newArgWindow(win fyne.Window) *argWindow {
-	return &argWindow{
+// NewArgWindow creates a new ArgWindow.
+func NewArgWindow(win fyne.Window) *ArgWindow {
+	return &ArgWindow{
 		win: win,
 	}
 }
 
-func (w *argWindow) showWithArgs(args []string, onSubmit func(map[string]string), onCancel func()) {
+// ShowWithArgs shows the ArgWindow with the given list of arguments.
+func (w *ArgWindow) ShowWithArgs(args []string, onSubmit func(map[string]string), onCancel func()) {
 	w.entries = make([]*typeableEntry, 0)
 	cont := container.NewVBox()
 	for _, a := range args {
@@ -54,7 +57,7 @@ func (w *argWindow) showWithArgs(args []string, onSubmit func(map[string]string)
 	w.win.Show()
 }
 
-func (w *argWindow) focusEntry(index int) {
+func (w *ArgWindow) focusEntry(index int) {
 	w.focusedIndex = index
 	w.win.Canvas().Focus(w.entries[index])
 }

@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"fmt"
@@ -14,37 +14,40 @@ import (
 	"github.com/sandro-h/snippet/util"
 )
 
-type searchWidget struct {
-	snippets         []*snippet
+// SearchWidget provides fuzzy search for a list of snippets. The snippets matching the search are displayed in a navigable list.
+type SearchWidget struct {
+	snippets         []*util.Snippet
 	snippetsText     []string
-	filteredSnippets []*snippet
+	filteredSnippets []*util.Snippet
 	selectedID       widget.ListItemID
-	onSubmit         func(snippet *snippet)
+	onSubmit         func(snippet *util.Snippet)
 	onCancel         func()
-	list             *widget.List
-	entry            *typeableEntry
+	List             *widget.List
+	Entry            *typeableEntry
 }
 
-func newSearchWidget(snippets []*snippet, onSubmit func(snippet *snippet), onCancel func()) *searchWidget {
-	w := &searchWidget{onSubmit: onSubmit, onCancel: onCancel}
+// NewSearchWidget creates a new SearchWidget.
+func NewSearchWidget(snippets []*util.Snippet, onSubmit func(snippet *util.Snippet), onCancel func()) *SearchWidget {
+	w := &SearchWidget{onSubmit: onSubmit, onCancel: onCancel}
 	w.createList()
 	w.createEntry()
-	w.setSnippets(snippets)
+	w.SetSnippets(snippets)
 	return w
 }
 
-func (w *searchWidget) setSnippets(snippets []*snippet) {
+// SetSnippets sets a new list of snippets for the widget to display.
+func (w *SearchWidget) SetSnippets(snippets []*util.Snippet) {
 	var snippetsText []string
 	for _, s := range snippets {
-		snippetsText = append(snippetsText, fmt.Sprintf("%s: %s", s.label, s.content))
+		snippetsText = append(snippetsText, fmt.Sprintf("%s: %s", s.Label, s.Content))
 	}
 	w.snippetsText = snippetsText
 	w.snippets = snippets
-	w.entry.OnChanged(w.entry.Text)
+	w.Entry.OnChanged(w.Entry.Text)
 }
 
-func (w *searchWidget) createList() {
-	w.list = widget.NewList(
+func (w *SearchWidget) createList() {
+	w.List = widget.NewList(
 		func() int {
 			return len(w.filteredSnippets)
 		},
@@ -59,32 +62,32 @@ func (w *searchWidget) createList() {
 			container := item.(*fyne.Container)
 			label := container.Objects[0].(*widget.Label)
 			content := container.Objects[1].(*canvas.Text)
-			label.SetText(w.filteredSnippets[id].label)
-			content.Text = strings.ReplaceAll(w.filteredSnippets[id].content, "\n", "\\n")
+			label.SetText(w.filteredSnippets[id].Label)
+			content.Text = strings.ReplaceAll(w.filteredSnippets[id].Content, "\n", "\\n")
 			ellipsis(container, content)
 		},
 	)
 
-	w.list.OnSelected = func(id widget.ListItemID) {
+	w.List.OnSelected = func(id widget.ListItemID) {
 		w.selectedID = id
 	}
-	w.list.Select(0)
+	w.List.Select(0)
 }
 
-func (w *searchWidget) createEntry() {
-	w.entry = newTypeableEntry()
+func (w *SearchWidget) createEntry() {
+	w.Entry = newTypeableEntry()
 
 	resetSearch := func() {
-		w.entry.Text = ""
-		w.entry.OnChanged(w.entry.Text)
-		w.list.Select(0)
+		w.Entry.Text = ""
+		w.Entry.OnChanged(w.Entry.Text)
+		w.List.Select(0)
 	}
 
-	w.entry.onTypedKey = func(key *fyne.KeyEvent) {
+	w.Entry.onTypedKey = func(key *fyne.KeyEvent) {
 		if key.Name == "Down" {
-			w.list.Select((w.selectedID + 1) % len(w.filteredSnippets))
+			w.List.Select((w.selectedID + 1) % len(w.filteredSnippets))
 		} else if key.Name == "Up" {
-			w.list.Select((len(w.filteredSnippets) + w.selectedID - 1) % len(w.filteredSnippets))
+			w.List.Select((len(w.filteredSnippets) + w.selectedID - 1) % len(w.filteredSnippets))
 		} else if key.Name == "Return" {
 			if w.selectedID >= 0 && w.selectedID < len(w.filteredSnippets) {
 				w.onSubmit(w.filteredSnippets[w.selectedID])
@@ -95,14 +98,14 @@ func (w *searchWidget) createEntry() {
 			resetSearch()
 		}
 	}
-	w.entry.OnChanged = func(s string) {
+	w.Entry.OnChanged = func(s string) {
 		matches := util.SearchFuzzy(s, w.snippetsText)
-		w.filteredSnippets = make([]*snippet, 0)
+		w.filteredSnippets = make([]*util.Snippet, 0)
 		for _, m := range matches {
 			w.filteredSnippets = append(w.filteredSnippets, w.snippets[m.Index])
 		}
-		w.list.Refresh()
-		w.list.Select(0)
+		w.List.Refresh()
+		w.List.Select(0)
 	}
 }
 
