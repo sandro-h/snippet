@@ -1,10 +1,13 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"image/color"
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -14,9 +17,11 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-vgo/robotgo"
 	hook "github.com/robotn/gohook"
+	"github.com/sandro-h/snippet/secrets"
 	"github.com/sandro-h/snippet/typing"
 	"github.com/sandro-h/snippet/ui"
 	"github.com/sandro-h/snippet/util"
+	"golang.org/x/crypto/ssh/terminal"
 	"gopkg.in/yaml.v2"
 )
 
@@ -31,7 +36,15 @@ var cfg *config = &config{
 	},
 }
 
+var doEncrypt = flag.Bool("encrypt", false, "Encrypt a secret")
+
 func main() {
+	flag.Parse()
+	if *doEncrypt {
+		encryptSecretFlow()
+		return
+	}
+
 	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	configFile := filepath.Join(dir, "config.yml")
 	if _, err := os.Stat(configFile); !os.IsNotExist(err) {
@@ -54,18 +67,20 @@ func main() {
 	a.Settings().SetTheme(&myTheme{})
 	w := newWindow(a)
 	argWin := ui.NewArgWindow(newWindow(a))
+	pwdWin := newWindow(a)
 
 	search := ui.NewSearchWidget(snippets,
 		func(snippet *util.Snippet) {
-			if snippet.Args != nil {
-				w.Hide()
+			w.Hide()
+			if snippet.Secret != "" {
+				typeSecretSnippet(snippet, w, pwdWin)
+			} else if snippet.Args != nil {
 				argWin.ShowWithArgs(snippet.Args, func(vals map[string]string) {
 					typing.TypeSnippet(util.InstantiateArgs(snippet.Content, vals), &cfg.Config)
 				}, func() {
 					w.Show()
 				})
 			} else {
-				w.Hide()
 				typing.TypeSnippet(snippet.Content, &cfg.Config)
 			}
 		},
@@ -94,6 +109,26 @@ func main() {
 	go listenForHotkeys(w)
 
 	w.ShowAndRun()
+}
+
+func encryptSecretFlow() {
+	fmt.Print("Secret>")
+	secret, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println()
+	fmt.Print("Password>")
+	password, _ := terminal.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		panic(err)
+	}
+	enc, err := secrets.Encrypt(string(secret), string(password))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println()
+	fmt.Println(enc)
 }
 
 func newWindow(a fyne.App) fyne.Window {
@@ -169,6 +204,29 @@ func listenForHotkeys(w fyne.Window) {
 
 	s := robotgo.EventStart()
 	<-robotgo.EventProcess(s)
+}
+
+func typeSecretSnippet(snippet *util.Snippet, mainWindow fyne.Window, pwdWindow fyne.Window) {
+	if snippet.SecretDecrypted == "" {
+		ui.ShowPasswordWindow(pwdWindow, "Password for secret "+snippet.Label,
+			func(pwd string) {
+				var err error
+				snippet.SecretDecrypted, err = secrets.Decrypt(snippet.Secret, pwd)
+				if err != nil {
+					log.Printf("Could not type secret snippet %s: %s", snippet.Label, err)
+					return
+				}
+				snippet.SecretLastUsed = time.Now()
+				typing.TypeSnippet(snippet.SecretDecrypted, &cfg.Config)
+			},
+			func() {
+				mainWindow.Show()
+			},
+		)
+	} else {
+		snippet.SecretLastUsed = time.Now()
+		typing.TypeSnippet(snippet.SecretDecrypted, &cfg.Config)
+	}
 }
 
 type myTheme struct{}

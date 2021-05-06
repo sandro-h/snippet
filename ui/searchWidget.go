@@ -124,6 +124,18 @@ func newTypeableEntry() *typeableEntry {
 	return e
 }
 
+func newTypeablePasswordEntry() *typeableEntry {
+	e := &typeableEntry{
+		widget.Entry{
+			Password: true,
+			Wrapping: fyne.TextTruncate,
+		},
+		nil,
+	}
+	e.ExtendBaseWidget(e)
+	return e
+}
+
 func (e *typeableEntry) TypedKey(key *fyne.KeyEvent) {
 	e.Entry.TypedKey(key)
 	if e.onTypedKey != nil {

@@ -15,7 +15,7 @@ type Snippet struct {
 	Content         string
 	Secret          string
 	SecretDecrypted string
-	LastSecretUse   time.Time
+	SecretLastUsed  time.Time
 	Args            []string
 }
 
@@ -60,7 +60,7 @@ func ReloadSnippets(snippetsFile string, oldSnippets []*Snippet) ([]*Snippet, er
 	for _, s := range newSnippets {
 		if os, ok := oldSnippetsMap[s.Label]; ok {
 			s.SecretDecrypted = os.SecretDecrypted
-			s.LastSecretUse = os.LastSecretUse
+			s.SecretLastUsed = os.SecretLastUsed
 		}
 	}
 	return newSnippets, nil
