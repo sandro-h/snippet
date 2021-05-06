@@ -2,6 +2,7 @@ package util
 
 import (
 	"strings"
+	"time"
 
 	"github.com/sahilm/fuzzy"
 )
@@ -47,4 +48,20 @@ func SearchFuzzy(source string, targets []string) fuzzy.Matches {
 		return res
 	}
 	return fuzzy.Find(source, targets)
+}
+
+// MinDur returns the smaller of two durations.
+func MinDur(d1 time.Duration, d2 time.Duration) time.Duration {
+	if d1 < d2 {
+		return d1
+	}
+	return d2
+}
+
+// MaxDur returns the larger of two durations.
+func MaxDur(d1 time.Duration, d2 time.Duration) time.Duration {
+	if d1 > d2 {
+		return d1
+	}
+	return d2
 }

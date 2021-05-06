@@ -57,6 +57,7 @@ func ReloadSnippets(snippetsFile string, oldSnippets []*Snippet) ([]*Snippet, er
 	for _, s := range oldSnippets {
 		oldSnippetsMap[s.Label] = s
 	}
+
 	for _, s := range newSnippets {
 		if os, ok := oldSnippetsMap[s.Label]; ok {
 			s.SecretDecrypted = os.SecretDecrypted

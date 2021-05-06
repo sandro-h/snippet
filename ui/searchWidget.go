@@ -46,10 +46,6 @@ func (w *SearchWidget) SetSnippets(snippets []*util.Snippet) {
 	w.Entry.OnChanged(w.Entry.Text)
 }
 
-func (w *SearchWidget) GetSnippets() []*util.Snippet {
-	return w.snippets
-}
-
 func (w *SearchWidget) createList() {
 	w.List = widget.NewList(
 		func() int {

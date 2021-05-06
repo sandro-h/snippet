@@ -27,13 +27,21 @@ import (
 
 type config struct {
 	typing.Config
+	secretTTL time.Duration
 }
+
+const defaultSecretTTL = 10 * time.Minute
 
 var cfg *config = &config{
 	typing.Config{
 		SpecialChars:    map[string]typing.SpecialChar{},
 		SpecialCharList: "",
 	},
+	defaultSecretTTL,
+}
+
+type appState struct {
+	snippets []*util.Snippet
 }
 
 var doEncrypt = flag.Bool("encrypt", false, "Encrypt a secret")
@@ -54,11 +62,14 @@ func main() {
 		}
 	}
 
+	state := &appState{}
+
 	snippetsFile := filepath.Join(dir, "snippets.yml")
 	if _, err := os.Stat(snippetsFile); os.IsNotExist(err) {
 		os.Create(snippetsFile)
 	}
-	snippets, err := util.LoadSnippets(snippetsFile)
+	var err error
+	state.snippets, err = util.LoadSnippets(snippetsFile)
 	if err != nil {
 		panic(err)
 	}
@@ -69,17 +80,14 @@ func main() {
 	argWin := ui.NewArgWindow(newWindow(a))
 	pwdWin := newWindow(a)
 
-	search := ui.NewSearchWidget(snippets,
+	search := ui.NewSearchWidget(state.snippets,
 		func(snippet *util.Snippet) {
 			w.Hide()
 			if snippet.Secret != "" {
 				typeSecretSnippet(snippet, w, pwdWin)
 			} else if snippet.Args != nil {
-				argWin.ShowWithArgs(snippet.Args, func(vals map[string]string) {
-					typing.TypeSnippet(util.InstantiateArgs(snippet.Content, vals), &cfg.Config)
-				}, func() {
-					w.Show()
-				})
+				typeArgSnippet(snippet, w, argWin)
+
 			} else {
 				typing.TypeSnippet(snippet.Content, &cfg.Config)
 			}
@@ -90,12 +98,19 @@ func main() {
 	)
 
 	go watchSnippets(snippetsFile, func() {
-		snippets, err := util.ReloadSnippets(snippetsFile, search.GetSnippets())
+		snippets, err := util.ReloadSnippets(snippetsFile, state.snippets)
 		if err != nil {
 			log.Println("error reloading snippets.yml:", err)
 			return
 		}
 
+		// Heuristic for fsnotify double-loads where the first load can't read anything.
+		// That would destroy the old runtime state if we don't catch it here.
+		if len(snippets) == 0 {
+			return
+		}
+
+		state.snippets = snippets
 		search.SetSnippets(snippets)
 	})
 
@@ -107,6 +122,7 @@ func main() {
 	w.CenterOnScreen()
 
 	go listenForHotkeys(w)
+	go periodicallyEvictSecrets(state, cfg.secretTTL)
 
 	w.ShowAndRun()
 }
@@ -146,6 +162,7 @@ func loadConfig(configFile string) (*config, error) {
 
 	var rawCfg struct {
 		SpecialCharList []typing.SpecialChar `yaml:"special_chars"`
+		SecretTTL       string               `yaml:"secret_ttl"`
 	}
 	err = yaml.Unmarshal(bytes, &rawCfg)
 	if err != nil {
@@ -157,7 +174,17 @@ func loadConfig(configFile string) (*config, error) {
 			SpecialChars:    map[string]typing.SpecialChar{},
 			SpecialCharList: "",
 		},
+		defaultSecretTTL,
 	}
+
+	if rawCfg.SecretTTL != "" {
+		dur, err := time.ParseDuration(rawCfg.SecretTTL)
+		if err != nil {
+			return nil, err
+		}
+		cfg.secretTTL = dur
+	}
+
 	for _, s := range rawCfg.SpecialCharList {
 		cfg.SpecialChars[s.Character] = s
 		cfg.SpecialCharList += s.Character
@@ -206,6 +233,14 @@ func listenForHotkeys(w fyne.Window) {
 	<-robotgo.EventProcess(s)
 }
 
+func typeArgSnippet(snippet *util.Snippet, mainWindow fyne.Window, argWin *ui.ArgWindow) {
+	argWin.ShowWithArgs(snippet.Args, func(vals map[string]string) {
+		typing.TypeSnippet(util.InstantiateArgs(snippet.Content, vals), &cfg.Config)
+	}, func() {
+		mainWindow.Show()
+	})
+}
+
 func typeSecretSnippet(snippet *util.Snippet, mainWindow fyne.Window, pwdWindow fyne.Window) {
 	if snippet.SecretDecrypted == "" {
 		ui.ShowPasswordWindow(pwdWindow, "Password for secret "+snippet.Label,
@@ -226,6 +261,21 @@ func typeSecretSnippet(snippet *util.Snippet, mainWindow fyne.Window, pwdWindow 
 	} else {
 		snippet.SecretLastUsed = time.Now()
 		typing.TypeSnippet(snippet.SecretDecrypted, &cfg.Config)
+	}
+}
+
+func periodicallyEvictSecrets(state *appState, ttl time.Duration) {
+	for {
+		now := time.Now()
+		for _, s := range state.snippets {
+			if s.SecretDecrypted != "" && now.Sub(s.SecretLastUsed) > ttl {
+				s.SecretDecrypted = ""
+			}
+		}
+
+		// Use 30s interval by default, except if ttl/2 is lower than that.
+		// But do max 1 check per second.
+		time.Sleep(util.MaxDur(1*time.Second, util.MinDur(30*time.Second, ttl/2)))
 	}
 }
 
