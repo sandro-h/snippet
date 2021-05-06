@@ -7,3 +7,11 @@ lorem: |
   Nulla dignissim dolor efficitur sem auctor pharetra.
   Duis eu neque odio.
 shebang: "#!/usr/bin/bash"
+
+# A snippet with arguments.
+# Arguments in the content must have curly brackets.
+# You must list arguments explicitly in the args list, so that snippet
+# does not treat unrelated {...} content as an argument.
+docker bash:
+  content: docker exec -ti {container} bash
+  args: [container]

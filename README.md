@@ -19,6 +19,19 @@ Snippets are stored in `snippet.yml` file, see [snippet_sample.yml](snippet_samp
 
 Optional configuration is stored in `config.yml` file, see [config_sample.yml](config_sample.yml).
 
+### Snippet arguments
+
+Snippets can use arguments that you have to fill out before it is typed.
+In this case:
+
+1. When you press `enter` to select a snippet with arguments,
+a new window pops up to fill out the arguments.
+2. Use `up` and `down` arrows to jump between argument inputs
+3. Press `enter` to confirm the arguments and type the snippet. Any empty arguments lead to empty replacements in the snippet.
+4. Press `escape` to cancel and return to the main snippet window.
+
+See the [snippet_sample.yml](snippet_sample.yml) for configuring a snippet with arguments.
+
 ## Development
 
 ```shell
