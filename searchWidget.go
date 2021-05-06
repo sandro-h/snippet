@@ -22,7 +22,7 @@ type searchWidget struct {
 	onSubmit         func(snippet *snippet)
 	onCancel         func()
 	list             *widget.List
-	entry            *searchEntry
+	entry            *typeableEntry
 }
 
 func newSearchWidget(snippets []*snippet, onSubmit func(snippet *snippet), onCancel func()) *searchWidget {
@@ -72,7 +72,7 @@ func (w *searchWidget) createList() {
 }
 
 func (w *searchWidget) createEntry() {
-	w.entry = newSearchEntry()
+	w.entry = newTypeableEntry()
 
 	resetSearch := func() {
 		w.entry.Text = ""
@@ -106,18 +106,18 @@ func (w *searchWidget) createEntry() {
 	}
 }
 
-type searchEntry struct {
+type typeableEntry struct {
 	widget.Entry
 	onTypedKey func(key *fyne.KeyEvent)
 }
 
-func newSearchEntry() *searchEntry {
-	e := &searchEntry{}
+func newTypeableEntry() *typeableEntry {
+	e := &typeableEntry{}
 	e.ExtendBaseWidget(e)
 	return e
 }
 
-func (e *searchEntry) TypedKey(key *fyne.KeyEvent) {
+func (e *typeableEntry) TypedKey(key *fyne.KeyEvent) {
 	e.Entry.TypedKey(key)
 	if e.onTypedKey != nil {
 		e.onTypedKey(key)

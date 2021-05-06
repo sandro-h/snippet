@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"log"
 	"os"
@@ -35,6 +36,7 @@ type specialChar struct {
 type snippet struct {
 	label   string
 	content string
+	args    []string
 }
 
 var cfg *config = &config{
@@ -63,17 +65,22 @@ func main() {
 
 	a := app.New()
 	a.Settings().SetTheme(&myTheme{})
-	var w fyne.Window
-	if drv, ok := fyne.CurrentApp().Driver().(desktop.Driver); ok {
-		w = drv.CreateSplashWindow()
-	} else {
-		w = a.NewWindow("")
-	}
+	w := newWindow(a)
+	argWin := newArgWindow(newWindow(a))
 
 	search := newSearchWidget(snippets,
 		func(snippet *snippet) {
-			w.Hide()
-			typeSnippet(snippet.content)
+			if snippet.args != nil {
+				w.Hide()
+				argWin.showWithArgs(snippet.args, func(vals map[string]string) {
+					typeSnippet(instantiateArgs(snippet.content, vals))
+				}, func() {
+					w.Show()
+				})
+			} else {
+				w.Hide()
+				typeSnippet(snippet.content)
+			}
 		},
 		func() {
 			w.Hide()
@@ -99,6 +106,13 @@ func main() {
 	go listenForHotkeys(w)
 
 	w.ShowAndRun()
+}
+
+func newWindow(a fyne.App) fyne.Window {
+	if drv, ok := a.Driver().(desktop.Driver); ok {
+		return drv.CreateSplashWindow()
+	}
+	return a.NewWindow("")
 }
 
 func loadConfig(configFile string) (*config, error) {
@@ -133,7 +147,7 @@ func loadSnippets(snippetsFile string) ([]*snippet, error) {
 		return nil, err
 	}
 
-	var rawSnippets map[string]string
+	var rawSnippets map[string]interface{}
 	err = yaml.Unmarshal(bytes, &rawSnippets)
 	if err != nil {
 		return nil, err
@@ -141,12 +155,50 @@ func loadSnippets(snippetsFile string) ([]*snippet, error) {
 
 	var snippets []*snippet
 	for k, v := range rawSnippets {
-		snippets = append(snippets, &snippet{
-			label:   k,
-			content: v,
-		})
+		snippet, err := unmarshalSnippet(k, v)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			snippets = append(snippets, snippet)
+		}
 	}
 	return snippets, nil
+}
+
+func unmarshalSnippet(key string, rawSnippet interface{}) (*snippet, error) {
+	snippet := &snippet{
+		label: key,
+	}
+
+	switch rv := rawSnippet.(type) {
+	case string:
+		snippet.content = rv
+	case map[interface{}]interface{}:
+		content, ok := rv["content"]
+		if !ok {
+			return nil, fmt.Errorf("error loading snippet %s: missing 'content' field", key)
+		}
+		snippet.content = content.(string)
+
+		args, ok := rv["args"]
+		if ok {
+			rawArgList, ok := args.([]interface{})
+			if !ok {
+				return nil, fmt.Errorf("error loading snippet %s: 'args' field is not a list of strings", key)
+			}
+			for i, a := range rawArgList {
+				arg, ok := a.(string)
+				if !ok {
+					return nil, fmt.Errorf("error loading snippet %s: 'args[%d]' field is not string", key, i)
+				}
+				snippet.args = append(snippet.args, arg)
+			}
+		}
+	default:
+		return nil, fmt.Errorf("error loading snippet %s: unknown type %T", key, rawSnippet)
+	}
+
+	return snippet, nil
 }
 
 func watchSnippets(snippetsFile string, onModified func()) {
@@ -187,6 +239,14 @@ func listenForHotkeys(w fyne.Window) {
 
 	s := robotgo.EventStart()
 	<-robotgo.EventProcess(s)
+}
+
+func instantiateArgs(content string, vals map[string]string) string {
+	res := content
+	for k, v := range vals {
+		res = strings.ReplaceAll(res, "{"+k+"}", v)
+	}
+	return res
 }
 
 func typeSnippet(content string) {
