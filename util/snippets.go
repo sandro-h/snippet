@@ -4,15 +4,19 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
 
 // Snippet describes a snippet of text.
 type Snippet struct {
-	Label   string
-	Content string
-	Args    []string
+	Label           string
+	Content         string
+	Secret          string
+	SecretDecrypted string
+	LastSecretUse   time.Time
+	Args            []string
 }
 
 // LoadSnippets loads a list of snippets from a YAML file.
@@ -40,6 +44,28 @@ func LoadSnippets(snippetsFile string) ([]*Snippet, error) {
 	return snippets, nil
 }
 
+// ReloadSnippets reloads the snippets (usually when snippetsFile content changed),
+// and transfers any runtime data of the old snippets to the matching new snippets.
+func ReloadSnippets(snippetsFile string, oldSnippets []*Snippet) ([]*Snippet, error) {
+	newSnippets, err := LoadSnippets(snippetsFile)
+	if err != nil {
+		return nil, err
+	}
+
+	// Transfer runtime snippet data to newly loaded snippets.
+	oldSnippetsMap := make(map[string]*Snippet)
+	for _, s := range oldSnippets {
+		oldSnippetsMap[s.Label] = s
+	}
+	for _, s := range newSnippets {
+		if os, ok := oldSnippetsMap[s.Label]; ok {
+			s.SecretDecrypted = os.SecretDecrypted
+			s.LastSecretUse = os.LastSecretUse
+		}
+	}
+	return newSnippets, nil
+}
+
 func unmarshalSnippet(key string, rawSnippet interface{}) (*Snippet, error) {
 	snippet := &Snippet{
 		Label: key,
@@ -49,11 +75,23 @@ func unmarshalSnippet(key string, rawSnippet interface{}) (*Snippet, error) {
 	case string:
 		snippet.Content = rv
 	case map[interface{}]interface{}:
-		content, ok := rv["content"]
-		if !ok {
-			return nil, fmt.Errorf("error loading snippet %s: missing 'content' field", key)
+		var ok bool
+		content, hasContent := rv["content"]
+		secret, hasSecret := rv["secret"]
+		if hasContent {
+			snippet.Content, ok = content.(string)
+			if !ok {
+				return nil, fmt.Errorf("error loading snippet %s: 'content' field is not string", key)
+			}
+		} else if hasSecret {
+			snippet.Content = "******"
+			snippet.Secret, ok = secret.(string)
+			if !ok {
+				return nil, fmt.Errorf("error loading snippet %s: 'secret' field is not string", key)
+			}
+		} else {
+			return nil, fmt.Errorf("error loading snippet %s: missing 'content' or 'secret' field", key)
 		}
-		snippet.Content = content.(string)
 
 		args, ok := rv["args"]
 		if ok {

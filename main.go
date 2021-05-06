@@ -75,11 +75,12 @@ func main() {
 	)
 
 	go watchSnippets(snippetsFile, func() {
-		snippets, err := util.LoadSnippets(snippetsFile)
+		snippets, err := util.ReloadSnippets(snippetsFile, search.GetSnippets())
 		if err != nil {
 			log.Println("error reloading snippets.yml:", err)
 			return
 		}
+
 		search.SetSnippets(snippets)
 	})
 
