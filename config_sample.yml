@@ -12,3 +12,7 @@ special_chars:
   - character: "#"
     key: 3
     command: gralt
+
+# Duration until an unlocked secret snippet is locked again.
+# Duration is in Golang format: https://golang.org/pkg/time/#ParseDuration
+secret_ttl: 10m

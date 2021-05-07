@@ -32,6 +32,23 @@ a new window pops up to fill out the arguments.
 
 See the [snippet_sample.yml](snippet_sample.yml) for configuring a snippet with arguments.
 
+### Secret snippets
+
+**Disclaimer: `snippet` is nowhere close to a proper password manager. Do not use it for important/personal passwords.**
+
+`snippet` can also type secrets, like a passphrase for a store.
+
+* Secret snippets are encrypted with passwords in `snippets.yml`. Encryption uses the same approach as Ansible Vaults.
+* You will be asked to provide the password when using a secret snippet
+* Once you used a secret snippet, you can reuse it without typing the password for a while.
+* If you don't use the secret snippet for a while, it will be locked again and require the password. The duration is configurable, see [config_sample.yml](config_sample.yml).
+
+You can create encrypted secrets using the command-line:
+
+1. Run `./snippet --encrypt`
+2. Enter the secret and a password to encrypt it
+3. Add the encrypted value to `snippets.yml`. See [snippet_sample.yml](snippet_sample.yml).
+
 ## Development
 
 ```shell

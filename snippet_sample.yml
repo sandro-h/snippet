@@ -15,3 +15,7 @@ shebang: "#!/usr/bin/bash"
 docker bash:
   content: docker exec -ti {container} bash
   args: [container]
+
+# Secret snippet
+keystore passphrase:
+  secret: AES256:MzVjOTYwZTJhNmVjNmFlNTRjM2FiOWM4Y2E3ZDJjZGUzYmZmN2JhZTJkYWFmZmViZjRjMDQ0YTc4ZGViMTY1ZAowOGM4MjQ4ZDE4YWUzNTcxMWM5MzMyMmY2NjNmOGZlNjY1YmNiN2EwOWYxMmE4Mjk5OTI3Y2FmNTA4NTY3Mjg3CmU2YmNiZDRhZGRhZjU3YjIxZTcwOTdiOGY1ZjE4ZTA2
