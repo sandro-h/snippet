@@ -76,43 +76,59 @@ func unmarshalSnippet(key string, rawSnippet interface{}) (*Snippet, error) {
 	case string:
 		snippet.Content = rv
 	case map[interface{}]interface{}:
-		var ok bool
-		content, hasContent := rv["content"]
-		secret, hasSecret := rv["secret"]
-		if hasContent {
-			snippet.Content, ok = content.(string)
-			if !ok {
-				return nil, fmt.Errorf("error loading snippet %s: 'content' field is not string", key)
-			}
-		} else if hasSecret {
-			snippet.Content = "******"
-			snippet.Secret, ok = secret.(string)
-			if !ok {
-				return nil, fmt.Errorf("error loading snippet %s: 'secret' field is not string", key)
-			}
-		} else {
-			return nil, fmt.Errorf("error loading snippet %s: missing 'content' or 'secret' field", key)
+		err := unmarshalContent(key, rv, snippet)
+		if err != nil {
+			return nil, err
 		}
-
-		args, ok := rv["args"]
-		if ok {
-			rawArgList, ok := args.([]interface{})
-			if !ok {
-				return nil, fmt.Errorf("error loading snippet %s: 'args' field is not a list of strings", key)
-			}
-			for i, a := range rawArgList {
-				arg, ok := a.(string)
-				if !ok {
-					return nil, fmt.Errorf("error loading snippet %s: 'args[%d]' field is not string", key, i)
-				}
-				snippet.Args = append(snippet.Args, arg)
-			}
+		err = unmarshalArguments(key, rv, snippet)
+		if err != nil {
+			return nil, err
 		}
 	default:
 		return nil, fmt.Errorf("error loading snippet %s: unknown type %T", key, rawSnippet)
 	}
 
 	return snippet, nil
+}
+
+func unmarshalContent(key string, rawValue map[interface{}]interface{}, snippet *Snippet) error {
+	var ok bool
+	content, hasContent := rawValue["content"]
+	secret, hasSecret := rawValue["secret"]
+	if hasContent {
+		snippet.Content, ok = content.(string)
+		if !ok {
+			return fmt.Errorf("error loading snippet %s: 'content' field is not string", key)
+		}
+	} else if hasSecret {
+		snippet.Content = "******"
+		snippet.Secret, ok = secret.(string)
+		if !ok {
+			return fmt.Errorf("error loading snippet %s: 'secret' field is not string", key)
+		}
+	} else {
+		return fmt.Errorf("error loading snippet %s: missing 'content' or 'secret' field", key)
+	}
+
+	return nil
+}
+
+func unmarshalArguments(key string, rawValue map[interface{}]interface{}, snippet *Snippet) error {
+	args, ok := rawValue["args"]
+	if ok {
+		rawArgList, ok := args.([]interface{})
+		if !ok {
+			return fmt.Errorf("error loading snippet %s: 'args' field is not a list of strings", key)
+		}
+		for i, a := range rawArgList {
+			arg, ok := a.(string)
+			if !ok {
+				return fmt.Errorf("error loading snippet %s: 'args[%d]' field is not string", key, i)
+			}
+			snippet.Args = append(snippet.Args, arg)
+		}
+	}
+	return nil
 }
 
 // InstantiateArgs takes a snippet content and a map of argument names to values and replaces
