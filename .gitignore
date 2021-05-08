@@ -6,3 +6,4 @@ upx
 upx*.tar.xz
 snippets.yml
 config.yml
+coverage.out

@@ -48,7 +48,7 @@ build-linux: patch-robotgo
 
 .PHONY: test
 test:
-	go test ./...
+	go test -v -coverprofile="coverage.out" ./...
 
 .PHONY: lint
 lint:
