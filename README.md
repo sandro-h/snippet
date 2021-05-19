@@ -16,7 +16,9 @@ Tiny cross-platform widget to insert snippets into the terminal, editor, etc.
 5. Press `escape` to cancel search and hide widget again.
 6. Press `Alt + F4` while widget is active to close it for good.
 
-Snippets are stored in `snippet.yml` file, see [snippet_sample.yml](snippet_sample.yml).
+Snippets are stored in `snippet.yml` file, see [snippet_sample.yml](snippet_sample.yml).  
+Snippets are automatically reloaded when `snippet.yml` changes.  
+If `editor_cmd` is configured, `Alt + e` will open the `snippet.yml` with the given editor command.
 
 Optional configuration is stored in `config.yml` file, see [config_sample.yml](config_sample.yml).
 

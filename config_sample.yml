@@ -16,3 +16,12 @@ special_chars:
 # Duration until an unlocked secret snippet is locked again.
 # Duration is in Golang format: https://golang.org/pkg/time/#ParseDuration
 secret_ttl: 10m
+
+# Hotkey combination to activate and show the snippet window.
+activate_hotkeys: [q, alt]
+
+# Hotkey combination to show snippets.yml in the editor.
+editor_hotkeys: [e, alt]
+
+# Command with which to open snippets.yml when Alt + e is pressed. Empty by default.
+editor_cmd: vim

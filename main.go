@@ -6,7 +6,9 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -25,19 +27,34 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type hotkeyConfig struct {
+	activateHotkeys []string
+	editorHotkeys   []string
+	editorCmd       string
+}
+
 type config struct {
 	typing.Config
 	secretTTL time.Duration
+	hotkeyConfig
 }
 
 const defaultSecretTTL = 10 * time.Minute
 
+var defaultActivateHotkeys = []string{"q", "alt"}
+
+var defaultEditorHotkeys = []string{"e", "alt"}
+
 var cfg *config = &config{
-	typing.Config{
+	Config: typing.Config{
 		SpecialChars:    map[string]typing.SpecialChar{},
 		SpecialCharList: "",
 	},
-	defaultSecretTTL,
+	secretTTL: defaultSecretTTL,
+	hotkeyConfig: hotkeyConfig{
+		activateHotkeys: defaultActivateHotkeys,
+		editorHotkeys:   defaultEditorHotkeys,
+	},
 }
 
 type appState struct {
@@ -121,7 +138,7 @@ func main() {
 	w.Canvas().Focus(search.Entry)
 	w.CenterOnScreen()
 
-	go listenForHotkeys(w)
+	go listenForHotkeys(w, snippetsFile, cfg.hotkeyConfig)
 	go periodicallyEvictSecrets(state, cfg.secretTTL)
 
 	w.ShowAndRun()
@@ -163,6 +180,9 @@ func loadConfig(configFile string) (*config, error) {
 	var rawCfg struct {
 		SpecialCharList []typing.SpecialChar `yaml:"special_chars"`
 		SecretTTL       string               `yaml:"secret_ttl"`
+		EditorCmd       string               `yaml:"editor_cmd"`
+		ActivateHotkeys []string             `yaml:"activate_hotkeys"`
+		EditorHotkeys   []string             `yaml:"editor_hotkeys"`
 	}
 	err = yaml.Unmarshal(bytes, &rawCfg)
 	if err != nil {
@@ -170,11 +190,26 @@ func loadConfig(configFile string) (*config, error) {
 	}
 
 	cfg := config{
-		typing.Config{
+		Config: typing.Config{
 			SpecialChars:    map[string]typing.SpecialChar{},
 			SpecialCharList: "",
 		},
-		defaultSecretTTL,
+		secretTTL: defaultSecretTTL,
+		hotkeyConfig: hotkeyConfig{
+			editorCmd: rawCfg.EditorCmd,
+		},
+	}
+
+	if rawCfg.ActivateHotkeys != nil {
+		cfg.activateHotkeys = rawCfg.ActivateHotkeys
+	} else {
+		cfg.activateHotkeys = defaultActivateHotkeys
+	}
+
+	if rawCfg.EditorHotkeys != nil {
+		cfg.editorHotkeys = rawCfg.EditorHotkeys
+	} else {
+		cfg.editorHotkeys = defaultEditorHotkeys
 	}
 
 	if rawCfg.SecretTTL != "" {
@@ -223,11 +258,22 @@ func watchSnippets(snippetsFile string, onModified func()) {
 	}
 }
 
-func listenForHotkeys(w fyne.Window) {
-	robotgo.EventHook(hook.KeyDown, []string{"q", "alt"}, func(e hook.Event) {
+func listenForHotkeys(w fyne.Window, snippetsFile string, hotkeyCfg hotkeyConfig) {
+	robotgo.EventHook(hook.KeyDown, hotkeyCfg.activateHotkeys, func(e hook.Event) {
 		w.Show()
-		// robotgo.EventEnd()
 	})
+
+	if hotkeyCfg.editorCmd != "" {
+		editorCmdParts := strings.Split(hotkeyCfg.editorCmd, " ")
+		editorCmdParts = append(editorCmdParts, snippetsFile)
+		robotgo.EventHook(hook.KeyDown, hotkeyCfg.editorHotkeys, func(e hook.Event) {
+			cmd := exec.Command(editorCmdParts[0], editorCmdParts[1:]...)
+			err := cmd.Start()
+			if err != nil {
+				log.Printf("Could not run %s: %s", cmd, err)
+			}
+		})
+	}
 
 	s := robotgo.EventStart()
 	<-robotgo.EventProcess(s)
