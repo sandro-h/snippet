@@ -2,7 +2,8 @@
 # Patches the robotgo C code to support the GRALT key on Linux systems.
 set -euo pipefail
 
-go get github.com/go-vgo/robotgo
+fq_robotgo=$(go mod graph | grep 'github.com/sandro-h/snippet github.com/go-vgo/robotgo' | awk '{print $2}')
+go get "$fq_robotgo"
 
 rebuild=false
 ROBOTGO_DIR=$(readlink -f $(go env GOPATH)/pkg/mod/github.com/go-vgo/robotgo@v*)
