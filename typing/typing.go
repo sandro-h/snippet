@@ -22,8 +22,21 @@ type Config struct {
 	SpecialCharList string
 }
 
-// TypeSnippet types the snippet content by simulating key presses.
-func TypeSnippet(content string, cfg *Config) {
+// TypeSnippet types the snippet content by simulating key presses if copy=false, or simulating a copy/paste if copy=true.
+func TypeSnippet(content string, copy bool, cfg *Config) {
+	if copy {
+		copyPasteSnippet(content)
+	} else {
+		typeSnippet(content, cfg)
+	}
+}
+
+func copyPasteSnippet(content string) {
+	robotgo.MicroSleep(50)
+	robotgo.PasteStr(content)
+}
+
+func typeSnippet(content string, cfg *Config) {
 	lines := strings.Split(content, "\n")
 	first := true
 	for _, l := range lines {

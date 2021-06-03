@@ -106,7 +106,7 @@ func main() {
 				typeArgSnippet(snippet, w, argWin)
 
 			} else {
-				typing.TypeSnippet(snippet.Content, &cfg.Config)
+				typing.TypeSnippet(snippet.Content, snippet.Copy, &cfg.Config)
 			}
 		},
 		func() {
@@ -281,7 +281,7 @@ func listenForHotkeys(w fyne.Window, snippetsFile string, hotkeyCfg hotkeyConfig
 
 func typeArgSnippet(snippet *util.Snippet, mainWindow fyne.Window, argWin *ui.ArgWindow) {
 	argWin.ShowWithArgs(snippet.Args, func(vals map[string]string) {
-		typing.TypeSnippet(util.InstantiateArgs(snippet.Content, vals), &cfg.Config)
+		typing.TypeSnippet(util.InstantiateArgs(snippet.Content, vals), snippet.Copy, &cfg.Config)
 	}, func() {
 		mainWindow.Show()
 	})
@@ -298,7 +298,7 @@ func typeSecretSnippet(snippet *util.Snippet, mainWindow fyne.Window, pwdWindow 
 					return
 				}
 				snippet.SecretLastUsed = time.Now()
-				typing.TypeSnippet(snippet.SecretDecrypted, &cfg.Config)
+				typing.TypeSnippet(snippet.SecretDecrypted, snippet.Copy, &cfg.Config)
 			},
 			func() {
 				mainWindow.Show()
@@ -306,7 +306,7 @@ func typeSecretSnippet(snippet *util.Snippet, mainWindow fyne.Window, pwdWindow 
 		)
 	} else {
 		snippet.SecretLastUsed = time.Now()
-		typing.TypeSnippet(snippet.SecretDecrypted, &cfg.Config)
+		typing.TypeSnippet(snippet.SecretDecrypted, snippet.Copy, &cfg.Config)
 	}
 }
 

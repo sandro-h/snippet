@@ -17,6 +17,7 @@ type Snippet struct {
 	SecretDecrypted string
 	SecretLastUsed  time.Time
 	Args            []string
+	Copy            bool
 }
 
 // LoadSnippets loads a list of snippets from a YAML file.
@@ -108,6 +109,14 @@ func unmarshalContent(key string, rawValue map[interface{}]interface{}, snippet 
 		}
 	} else {
 		return fmt.Errorf("error loading snippet %s: missing 'content' or 'secret' field", key)
+	}
+
+	copy, hasCopy := rawValue["copy"]
+	if hasCopy {
+		snippet.Copy, ok = copy.(bool)
+		if !ok {
+			fmt.Printf("Warning: snippet %s - 'copy' field should be a boolean. Ignoring field.\n", key)
+		}
 	}
 
 	return nil

@@ -52,6 +52,10 @@ You can create encrypted secrets using the command-line:
 2. Enter the secret and a password to encrypt it
 3. Add the encrypted value to `snippets.yml`. See [snippet_sample.yml](snippet_sample.yml).
 
+### Misc. snippet features
+
+See [snippet_sample.yml](snippet_sample.yml) for some smaller options and flags for snippets.
+
 ## Development
 
 ```shell
