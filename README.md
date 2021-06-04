@@ -56,6 +56,23 @@ You can create encrypted secrets using the command-line:
 
 See [snippet_sample.yml](snippet_sample.yml) for some smaller options and flags for snippets.
 
+## Installation
+
+In general, all you need is the executable from the Releases page.
+There are some special cases:
+
+* For the "copy/paste snippet" feature on Linux, you need `xsel` or `xclip`.  
+To build and install `xclip` manually:
+
+  ```shell
+  git clone https://github.com/astrand/xclip.git
+  cd xclip/
+  ./bootstrap 
+  ./configure
+  make
+  sudo make install
+  ```
+
 ## Development
 
 ```shell
