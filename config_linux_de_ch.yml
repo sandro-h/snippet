@@ -1,53 +1,11 @@
 ---
-# Note, also have to patch layout to assign some weird characters to different keys,
-# because robotgo can't handle them.
-# sudo vim /usr/share/X11/xkb/symbols/ch
-# < key <BKSL> { [     dollar,   sterling,   braceright             ] };
-# > key <BKSL> { [     dollar,   dollar,   braceright             ] };
-# < key <AE11> { [ apostrophe,   question,   dead_acute             ] };
-# > key <AE11> { [ apostrophe,   question,   apostrophe             ] };
-# < key <AE10> { [          0,      equal                           ] };
-# > key <AE10> { [          0,      equal, dead_circumflex          ] };
-# setxkbmap
-
 special_chars:
-  - character: /
-    key: 7
-    command: shift
-  - character: "#"
-    key: 3
-    command: gralt
-  - character: =
-    key: 0
-    command: shift
-  - character: '"'
-    key: 2
-    command: shift
-  - character: "'"
-    key: "?"
-    command: gralt
-  - character: '{'
-    key: '{'
-    command: gralt
-  - character: '}'
-    key: $
-    command: gralt
-  - character: '['
-    key: '['
-    command: gralt
-  - character: ']'
-    key: ']'
-    command: gralt
-  - character: '|'
-    key: 7
-    command: gralt
-  - character: '^'
-    key: '0'
-    command: gralt
+  - character: "~"
+    key_sym: 0xfe53
     space_after: true
-  - character: ';'
-    key: ','
-    command: shift
-  - character: '\'
-    key: '<'
-    command: gralt
+  - character: "^"
+    key_sym: 0xfe52
+    space_after: true
+  - character: "`"
+    key_sym: 0xfe50
+    space_after: true

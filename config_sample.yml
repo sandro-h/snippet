@@ -1,17 +1,14 @@
 ---
 
-# Make snippet type the following characters with a particular key combination ON LINUX ONLY.
+# Override the way these characters are typed ON LINUX ONLY.
 # Useful for non-english keyboard layouts where the typing automation somtimes
 # produces incorrect results on Linux.
-# Possible key and command values: see https://github.com/go-vgo/robotgo/blob/master/docs/keys.md
-# Additionally, snippet supports "gralt" command.
 special_chars:
-  - character: /
-    key: 7
-    command: shift
-  - character: "#"
-    key: 3
-    command: gralt
+  - character: "~"
+    # Can be looked up with xmodmap -pk
+    key_sym: 0xfe53
+    # Needed to type "dead" keys by themselves, because they also modify a previous letter (e.g. accents)
+    space_after: true
 
 # Duration until an unlocked secret snippet is locked again.
 # Duration is in Golang format: https://golang.org/pkg/time/#ParseDuration

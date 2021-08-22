@@ -1,4 +1,4 @@
-BASE_VERSION=0.3.2
+BASE_VERSION=0.4.0
 REPO_OWNER=sandro-h
 BUILD_CENTOS_IMAGE_VERSION=0.0.1
 BUILD_CENTOS_IMAGE_TAG=ghcr.io/${REPO_OWNER}/snippet-centos-build:${BUILD_CENTOS_IMAGE_VERSION}
@@ -14,10 +14,6 @@ push-centos-image:
 ifeq ($(PUSH_IMAGE), true)
 	docker push ${BUILD_CENTOS_IMAGE_TAG}
 endif
-
-.PHONY: patch-robotgo
-patch-robotgo:
-	./patch_robotgo.sh
 
 .PHONY: build-centos-image
 build-centos-image:
@@ -36,14 +32,14 @@ build-centos: ensure-centos-image
 		-e DEV_UID=$$(id -u) \
 		-w /src \
 		${BUILD_CENTOS_IMAGE_TAG} \
-		"export PATH=/usr/local/go/bin:\$$PATH && ./patch_robotgo.sh && go build -o snippet-centos ${EXTRA_BUILD_ARGS} && chown \$$DEV_UID snippet-centos"
+		"export PATH=/usr/local/go/bin:\$$PATH && go build -o snippet-centos ${EXTRA_BUILD_ARGS} && chown \$$DEV_UID snippet-centos"
 
 .PHONY: build-windows
-build-windows: patch-robotgo
+build-windows:
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build -ldflags "-H=windowsgui ${EXTRA_WIN_LDFLAGS}" ${EXTRA_WIN_BUILD_ARGS}
 
 .PHONY: build-linux
-build-linux: patch-robotgo
+build-linux:
 	go build ${EXTRA_BUILD_ARGS}
 
 .PHONY: test
@@ -56,6 +52,7 @@ lint:
 
 .PHONY: install-sys-packages
 install-sys-packages:
+	sudo apt update && \
 	sudo apt install gcc libc6-dev \
 	libx11-dev xorg-dev libxtst-dev libpng++-dev \
 	xcb libxcb-xkb-dev x11-xkb-utils libx11-xcb-dev libxkbcommon-x11-dev \

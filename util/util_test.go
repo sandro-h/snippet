@@ -14,12 +14,19 @@ func TestSplitSpecial(t *testing.T) {
 		{"hello/world", []string{"hello", "/", "world"}},
 		{"/hello/", []string{"/", "hello", "/"}},
 		{"hello", []string{"hello"}},
+		{"hel/l", []string{"hel", "/", "l"}},
 		{"/", []string{"/"}},
+		{"ä\\", []string{"ä\\"}},
+		{"ä/\\", []string{"ä", "/", "\\"}},
+		{"helloüworld", []string{"hello", "ü", "world"}},
+		{"äääüööö", []string{"äää", "ü", "ööö"}},
+		{"ü", []string{"ü"}},
+		{"ühello", []string{"ü", "hello"}},
 		{"", nil},
 		{"#!/usr/bin/env bash", []string{"#", "!", "/", "usr", "/", "bin", "/", "env bash"}},
 	}
 
-	specials := "/#"
+	specials := "/#ü"
 
 	for _, c := range cases {
 		actual := SplitSpecials(c.in, specials)

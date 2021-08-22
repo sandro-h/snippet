@@ -11,9 +11,8 @@ import (
 // SpecialChar defines a character that has to be typed in a non-standard way.
 type SpecialChar struct {
 	Character  string `yaml:"character"`
-	Key        string `yaml:"key"`
-	CommandKey string `yaml:"command"`
 	SpaceAfter bool   `yaml:"space_after"`
+	KeySym     int    `yaml:"key_sym"`
 }
 
 // Config specifies the behavior when typing.
@@ -53,6 +52,7 @@ func typeStr(str string, cfg *Config) {
 	// robotgo's linux implementation for typing cannot deal with special keys on non-standard keyboard layouts (e.g. Swiss German),
 	// so handle such special keys explicitly.
 	if runtime.GOOS == "linux" {
+		robotgo.StartMultiToggleKey()
 		parts := util.SplitSpecials(str, cfg.SpecialCharList)
 		for _, p := range parts {
 			if len(p) == 1 && strings.Contains(cfg.SpecialCharList, p) {
@@ -61,19 +61,14 @@ func typeStr(str string, cfg *Config) {
 				robotgo.TypeStr(p)
 			}
 		}
+		robotgo.EndMultiToggleKey()
 	} else {
 		robotgo.TypeStr(str)
 	}
 }
 
 func typeSpecialKey(key SpecialChar) {
-	if key.CommandKey == "gralt" {
-		robotgo.KeyToggle("gralt", "down")
-		robotgo.KeyTap(key.Key)
-		robotgo.KeyToggle("gralt", "up")
-	} else {
-		robotgo.KeyTap(key.Key, key.CommandKey)
-	}
+	robotgo.KeysymType(uint32(key.KeySym))
 
 	if key.SpaceAfter {
 		robotgo.KeyTap("space")

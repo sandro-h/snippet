@@ -11,23 +11,26 @@ import (
 // in the specials parameter. The found special characters are also included in the result.
 func SplitSpecials(str string, specials string) []string {
 	var parts []string
+	// Reminder: s and i are indexes in bytes. Means if we iterate over a unicode point (e.g. 2 bytes wide),
+	// i jumps by 2.
 	s := 0
-	e := 0
 	for i, c := range str {
+		if s < 0 {
+			s = i
+		}
+
 		if strings.ContainsRune(specials, c) {
-			if e > s {
-				parts = append(parts, str[s:e])
+			if i > s {
+				parts = append(parts, str[s:i])
 			}
 			parts = append(parts, string(c))
-			s = i + 1
-			e = s
-		} else {
-			e++
+			// Don't set to i+1 because current char could be more than 2 bytes.
+			s = -1
 		}
 	}
 
-	if e > s {
-		parts = append(parts, str[s:e])
+	if s > -1 && s < len(str) {
+		parts = append(parts, str[s:])
 	}
 
 	return parts
