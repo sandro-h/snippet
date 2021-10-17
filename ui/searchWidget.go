@@ -77,10 +77,26 @@ func (w *SearchWidget) createList() {
 func (w *SearchWidget) createEntry() {
 	w.Entry = newTypeableEntry()
 
-	resetSearch := func() {
+	resetSearch := func(retainSelection bool) {
+		selectedLabel := w.filteredSnippets[w.selectedID].Label
 		w.Entry.Text = ""
 		w.Entry.OnChanged(w.Entry.Text)
-		w.List.Select(0)
+
+		if retainSelection {
+			newIndex := -1
+			for i, s := range w.filteredSnippets {
+				if s.Label == selectedLabel {
+					newIndex = i
+					break
+				}
+			}
+			if newIndex > -1 {
+				w.List.Select(newIndex)
+			}
+		} else {
+			w.List.Select(0)
+		}
+
 	}
 
 	w.Entry.onTypedKey = func(key *fyne.KeyEvent) {
@@ -91,11 +107,11 @@ func (w *SearchWidget) createEntry() {
 		} else if key.Name == "Return" {
 			if w.selectedID >= 0 && w.selectedID < len(w.filteredSnippets) {
 				w.onSubmit(w.filteredSnippets[w.selectedID])
-				resetSearch()
+				resetSearch(true)
 			}
 		} else if key.Name == "Escape" {
 			w.onCancel()
-			resetSearch()
+			resetSearch(false)
 		}
 	}
 	w.Entry.OnChanged = func(s string) {
