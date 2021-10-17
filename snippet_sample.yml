@@ -21,8 +21,12 @@ keystore passphrase:
   secret: AES256:MzVjOTYwZTJhNmVjNmFlNTRjM2FiOWM4Y2E3ZDJjZGUzYmZmN2JhZTJkYWFmZmViZjRjMDQ0YTc4ZGViMTY1ZAowOGM4MjQ4ZDE4YWUzNTcxMWM5MzMyMmY2NjNmOGZlNjY1YmNiN2EwOWYxMmE4Mjk5OTI3Y2FmNTA4NTY3Mjg3CmU2YmNiZDRhZGRhZjU3YjIxZTcwOTdiOGY1ZjE4ZTA2
 
 # Copy/paste snippet instead of typing it. Useful to preserve exact indentations in an editor.
+# Valid values for 'copy':
+# * none - Use normal typing
+# * normal - Use Ctrl+V to copy-paste
+# * shell - Use Ctrl+Shift+V to copy-paste
 my script:
-  copy: true
+  copy: normal
   content: |
     if abc = true:
       print("yes")

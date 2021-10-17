@@ -9,6 +9,19 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// CopyMode describes whether a snippet is copy-pasted instead of typed and in what fashion.
+type CopyMode int
+
+const (
+	// CopyModeNone uses regular typing instead of copy-pasting.
+	CopyModeNone CopyMode = iota
+	// CopyModeNormal uses the standard Ctrl+V shortcut to copy-paste the snippet
+	CopyModeNormal = iota
+	// CopyModeShell uses the Ctrl+Shift+V shortcut to copy-paste the snippet into a terminal, where
+	// Ctrl+V usually doesn't work.
+	CopyModeShell = iota
+)
+
 // Snippet describes a snippet of text.
 type Snippet struct {
 	Label           string
@@ -17,7 +30,7 @@ type Snippet struct {
 	SecretDecrypted string
 	SecretLastUsed  time.Time
 	Args            []string
-	Copy            bool
+	Copy            CopyMode
 }
 
 // LoadSnippets loads a list of snippets from a YAML file.
@@ -113,9 +126,26 @@ func unmarshalContent(key string, rawValue map[interface{}]interface{}, snippet 
 
 	copy, hasCopy := rawValue["copy"]
 	if hasCopy {
-		snippet.Copy, ok = copy.(bool)
+		copyStr, ok := copy.(string)
+		if ok {
+			switch copyStr {
+			case "none":
+				snippet.Copy = CopyModeNone
+				break
+			case "normal":
+				snippet.Copy = CopyModeNormal
+				break
+			case "shell":
+				snippet.Copy = CopyModeShell
+				break
+			default:
+				snippet.Copy = CopyModeNone
+				ok = false
+			}
+		}
+
 		if !ok {
-			fmt.Printf("Warning: snippet %s - 'copy' field should be a boolean. Ignoring field.\n", key)
+			fmt.Printf("Warning: snippet %s - 'copy' field should be one of: none, normal, shell. Ignoring field.\n", key)
 		}
 	}
 

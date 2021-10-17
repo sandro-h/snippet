@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/go-vgo/robotgo"
+	"github.com/go-vgo/robotgo/clipboard"
 	"github.com/sandro-h/snippet/util"
 )
 
@@ -22,10 +23,15 @@ type Config struct {
 }
 
 // TypeSnippet types the snippet content by simulating key presses if copy=false, or simulating a copy/paste if copy=true.
-func TypeSnippet(content string, copy bool, cfg *Config) {
-	if copy {
+func TypeSnippet(content string, copy util.CopyMode, cfg *Config) {
+	switch copy {
+	case util.CopyModeNormal:
 		copyPasteSnippet(content)
-	} else {
+		break
+	case util.CopyModeShell:
+		copyPasteSnippetToShell(content)
+		break
+	default:
 		typeSnippet(content, cfg)
 	}
 }
@@ -33,6 +39,17 @@ func TypeSnippet(content string, copy bool, cfg *Config) {
 func copyPasteSnippet(content string) {
 	robotgo.MicroSleep(50)
 	robotgo.PasteStr(content)
+}
+
+func copyPasteSnippetToShell(content string) {
+	robotgo.MicroSleep(50)
+	clipboard.WriteAll(content)
+
+	if runtime.GOOS == "darwin" {
+		robotgo.KeyTap("v", "shift", "command")
+	}
+
+	robotgo.KeyTap("v", "shift", "control")
 }
 
 func typeSnippet(content string, cfg *Config) {
