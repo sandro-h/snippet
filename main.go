@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"image/color"
 	"log"
 	"os"
 	"os/exec"
@@ -15,7 +14,6 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
-	"fyne.io/fyne/v2/theme"
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-vgo/robotgo"
 	hook "github.com/robotn/gohook"
@@ -92,7 +90,7 @@ func main() {
 	}
 
 	a := app.New()
-	a.Settings().SetTheme(&myTheme{})
+	a.Settings().SetTheme(&ui.MyTheme{})
 	w := newWindow(a)
 	argWin := ui.NewArgWindow(newWindow(a))
 	pwdWin := newWindow(a)
@@ -323,25 +321,4 @@ func periodicallyEvictSecrets(state *appState, ttl time.Duration) {
 		// But do max 1 check per second.
 		time.Sleep(util.MaxDur(1*time.Second, util.MinDur(30*time.Second, ttl/2)))
 	}
-}
-
-type myTheme struct{}
-
-func (m myTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
-	return theme.DarkTheme().Color(name, theme.VariantDark)
-}
-
-func (m myTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
-	return theme.DarkTheme().Icon(name)
-}
-
-func (m myTheme) Font(style fyne.TextStyle) fyne.Resource {
-	return theme.DarkTheme().Font(style)
-}
-
-func (m myTheme) Size(name fyne.ThemeSizeName) float32 {
-	if name == theme.SizeNamePadding {
-		return 2
-	}
-	return theme.DarkTheme().Size(name)
 }

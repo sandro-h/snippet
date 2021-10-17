@@ -3,7 +3,7 @@ module github.com/sandro-h/snippet
 go 1.16
 
 require (
-	fyne.io/fyne/v2 v2.0.3
+	fyne.io/fyne/v2 v2.1.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-vgo/robotgo v0.93.1
 	github.com/kylelemons/godebug v1.1.0 // indirect
