@@ -1,9 +1,9 @@
 package ui
 
 import (
-	"fmt"
 	"math"
 	"strings"
+	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -12,21 +12,57 @@ import (
 	"github.com/sandro-h/snippet/util"
 )
 
+type snippetSegment struct {
+	str         string
+	highlighted bool
+}
+
+type filteredSnippet struct {
+	snippet            *util.Snippet
+	highlightedLabel   []snippetSegment
+	highlightedContent []snippetSegment
+}
+
 // SearchWidget provides fuzzy search for a list of snippets. The snippets matching the search are displayed in a navigable list.
 type SearchWidget struct {
-	snippets         []*util.Snippet
-	snippetsText     []string
-	filteredSnippets []*util.Snippet
-	selectedID       widget.ListItemID
-	onSubmit         func(snippet *util.Snippet)
-	onCancel         func()
-	List             *widget.List
-	Entry            *typeableEntry
+	snippets                []*util.Snippet
+	snippetLabels           []string
+	snippetContents         []string
+	filteredSnippets        []*filteredSnippet
+	selectedID              widget.ListItemID
+	onSubmit                func(snippet *util.Snippet)
+	onCancel                func()
+	List                    *widget.List
+	Entry                   *typeableEntry
+	renderLock              sync.Mutex
+	labelStyle              widget.RichTextStyle
+	highlightedLabelStyle   widget.RichTextStyle
+	contentStyle            widget.RichTextStyle
+	highlightedContentStyle widget.RichTextStyle
 }
 
 // NewSearchWidget creates a new SearchWidget.
 func NewSearchWidget(snippets []*util.Snippet, onSubmit func(snippet *util.Snippet), onCancel func()) *SearchWidget {
-	w := &SearchWidget{onSubmit: onSubmit, onCancel: onCancel}
+	w := &SearchWidget{
+		onSubmit: onSubmit,
+		onCancel: onCancel,
+		labelStyle: widget.RichTextStyle{
+			Inline:    true,
+			TextStyle: fyne.TextStyle{Bold: true},
+		},
+		highlightedLabelStyle: widget.RichTextStyle{
+			Inline:    true,
+			TextStyle: fyne.TextStyle{Bold: true},
+			ColorName: theme.ColorNamePrimary,
+		},
+		contentStyle: widget.RichTextStyle{
+			ColorName: ColorSnippetContent,
+			Inline:    true,
+		},
+		highlightedContentStyle: widget.RichTextStyle{
+			ColorName: theme.ColorNamePrimary,
+			Inline:    true,
+		}}
 	w.createList()
 	w.createEntry()
 	w.SetSnippets(snippets)
@@ -35,11 +71,14 @@ func NewSearchWidget(snippets []*util.Snippet, onSubmit func(snippet *util.Snipp
 
 // SetSnippets sets a new list of snippets for the widget to display.
 func (w *SearchWidget) SetSnippets(snippets []*util.Snippet) {
-	var snippetsText []string
+	var snippetLabels []string
+	var snippetContents []string
 	for _, s := range snippets {
-		snippetsText = append(snippetsText, fmt.Sprintf("%s: %s", s.Label, s.Content))
+		snippetLabels = append(snippetLabels, s.Label)
+		snippetContents = append(snippetContents, strings.ReplaceAll(s.Content, "\n", "\\n"))
 	}
-	w.snippetsText = snippetsText
+	w.snippetLabels = snippetLabels
+	w.snippetContents = snippetContents
 	w.snippets = snippets
 	w.Entry.OnChanged(w.Entry.Text)
 }
@@ -55,31 +94,21 @@ func (w *SearchWidget) createList() {
 			return container.NewHBox(label, content)
 		},
 		func(id widget.ListItemID, item fyne.CanvasObject) {
+			if id >= len(w.filteredSnippets) {
+				return
+			}
+
 			container := item.(*fyne.Container)
 			label := container.Objects[0].(*widget.RichText)
 			content := container.Objects[1].(*widget.RichText)
 
-			labelStyle := widget.RichTextStyle{
-				Inline:    true,
-				TextStyle: fyne.TextStyle{Bold: true},
-			}
-			label.Segments = []widget.RichTextSegment{&widget.TextSegment{Style: labelStyle,
-				Text: w.filteredSnippets[id].Label}}
+			w.renderLock.Lock()
+			label.Segments = createTextSegments(w.filteredSnippets[id].highlightedLabel, w.labelStyle, w.highlightedLabelStyle)
+			content.Segments = createTextSegments(w.filteredSnippets[id].highlightedContent, w.contentStyle, w.highlightedContentStyle)
+			w.renderLock.Unlock()
+
+			ellipsis(container, content, w.contentStyle)
 			label.Refresh()
-
-			text := strings.ReplaceAll(w.filteredSnippets[id].Content, "\n", "\\n")
-			contentStyle := widget.RichTextStyle{
-				ColorName: ColorSnippetContent,
-				Inline:    true,
-				TextStyle: fyne.TextStyle{
-					// Not active because it is not aligned with label since upgrading to Fyne 2.1:
-					// Monospace: true,
-				},
-			}
-
-			content.Segments = []widget.RichTextSegment{&widget.TextSegment{Style: contentStyle,
-				Text: text}}
-			ellipsis(container, content, contentStyle)
 			content.Refresh()
 		},
 	)
@@ -90,18 +119,33 @@ func (w *SearchWidget) createList() {
 	w.List.Select(0)
 }
 
+func createTextSegments(segments []snippetSegment, style widget.RichTextStyle, highlightedStyle widget.RichTextStyle) []widget.RichTextSegment {
+	var textSegments []widget.RichTextSegment
+	for _, s := range segments {
+		textSegment := widget.TextSegment{Text: s.str}
+		if s.highlighted {
+			textSegment.Style = highlightedStyle
+		} else {
+			textSegment.Style = style
+		}
+
+		textSegments = append(textSegments, &textSegment)
+	}
+	return textSegments
+}
+
 func (w *SearchWidget) createEntry() {
 	w.Entry = newTypeableEntry()
 
 	resetSearch := func(retainSelection bool) {
-		selectedLabel := w.filteredSnippets[w.selectedID].Label
+		selectedLabel := w.filteredSnippets[w.selectedID].snippet.Label
 		w.Entry.Text = ""
 		w.Entry.OnChanged(w.Entry.Text)
 
 		if retainSelection {
 			newIndex := -1
 			for i, s := range w.filteredSnippets {
-				if s.Label == selectedLabel {
+				if s.snippet.Label == selectedLabel {
 					newIndex = i
 					break
 				}
@@ -122,7 +166,7 @@ func (w *SearchWidget) createEntry() {
 			w.List.Select((len(w.filteredSnippets) + w.selectedID - 1) % len(w.filteredSnippets))
 		} else if key.Name == "Return" {
 			if w.selectedID >= 0 && w.selectedID < len(w.filteredSnippets) {
-				w.onSubmit(w.filteredSnippets[w.selectedID])
+				w.onSubmit(w.filteredSnippets[w.selectedID].snippet)
 				resetSearch(true)
 			}
 		} else if key.Name == "Escape" {
@@ -131,14 +175,51 @@ func (w *SearchWidget) createEntry() {
 		}
 	}
 	w.Entry.OnChanged = func(s string) {
-		matches := util.SearchFuzzy(s, w.snippetsText)
-		w.filteredSnippets = make([]*util.Snippet, 0)
+		matches := util.SearchFuzzyMulti(s, w.snippetLabels, w.snippetContents)
+		var filteredSnippets []*filteredSnippet
+
 		for _, m := range matches {
-			w.filteredSnippets = append(w.filteredSnippets, w.snippets[m.Index])
+			highlightedLabel := createHighlightedSegments(w.snippetLabels[m.Index], m.Match1)
+			highlightedContent := createHighlightedSegments(w.snippetContents[m.Index], m.Match2)
+
+			s := &filteredSnippet{
+				snippet:            w.snippets[m.Index],
+				highlightedLabel:   highlightedLabel,
+				highlightedContent: highlightedContent,
+			}
+			filteredSnippets = append(filteredSnippets, s)
 		}
+
+		w.renderLock.Lock()
+		w.filteredSnippets = filteredSnippets
+		w.renderLock.Unlock()
+
 		w.List.Refresh()
 		w.List.Select(0)
 	}
+}
+
+func createHighlightedSegments(text string, match util.Match) []snippetSegment {
+	segments := []snippetSegment{{str: text, highlighted: false}}
+	if match.Index > -1 {
+		segments = make([]snippetSegment, 0)
+
+		li := 0
+		for _, r := range match.MatchedRanges {
+			if r.Start >= len(text) {
+				break
+			}
+			if r.Start > li {
+				segments = append(segments, snippetSegment{str: text[li:r.Start], highlighted: false})
+			}
+			segments = append(segments, snippetSegment{str: text[r.Start : r.End+1], highlighted: true})
+			li = r.End + 1
+		}
+		if li < len(text) {
+			segments = append(segments, snippetSegment{str: text[li:], highlighted: false})
+		}
+	}
+	return segments
 }
 
 type typeableEntry struct {
@@ -175,35 +256,72 @@ func ellipsis(container *fyne.Container, label *widget.RichText, ellipsisStyle w
 	w := measureRichText(label)
 	if label.Position().X+w > container.Size().Width {
 		wellipsis := fyne.MeasureText(string("..."), theme.TextSize(), ellipsisStyle.TextStyle).Width
-		wmax := container.Size().Width - wellipsis
+		wmax := getMaxContentWidth(container, label) - wellipsis
 		wpc := float64(w) / float64(len(label.String()))
-		k := 0
+		startEllipsis := false
 
-		for label.Position().X+w > wmax {
-			overlap := label.Position().X + w - wmax
+		for w > wmax {
+			overlap := w - wmax
 			overlapc := int(math.Ceil(math.Max(1, float64(overlap)/wpc)))
 			if overlapc > len(label.String()) {
 				break
 			}
 
-			tgtLen := len(label.String()) - overlapc
-			for len(label.String()) > tgtLen {
-				lastSeg := label.Segments[len(label.Segments)-1].(*widget.TextSegment)
-				if len(lastSeg.Textual()) <= overlapc {
-					label.Segments = label.Segments[:len(label.Segments)-1]
-				} else {
-					lastSeg.Text = lastSeg.Text[:len(lastSeg.Text)-overlapc]
-				}
+			truncatedFirst := truncateSegments(&label.Segments, overlapc)
+			if !startEllipsis && truncatedFirst {
+				startEllipsis = true
+				wmax -= wellipsis
 			}
 
 			label.Refresh()
 			w = measureRichText(label)
-			k++
 		}
 
+		if startEllipsis {
+			firstSeg := label.Segments[0].(*widget.TextSegment)
+			firstSeg.Text = "..." + firstSeg.Text
+		}
 		label.Segments = append(label.Segments, &widget.TextSegment{Text: "...", Style: ellipsisStyle})
 		label.Refresh()
 	}
+}
+
+func truncateSegments(segments *[]widget.RichTextSegment, truncateLen int) bool {
+	firstSeg := (*segments)[0].(*widget.TextSegment)
+	firstHighlighted := firstSeg.Style.ColorName == theme.ColorNamePrimary
+	truncatedFirst := false
+
+	for truncateLen > 0 {
+		// If there's only two segments left and the first one is not highlighted,
+		// remove content from the first one, to ensure the highlight is visible.
+		if len(*segments) == 2 && !firstHighlighted && firstSeg.Text != "" {
+			truncatedFirst = true
+
+			if len(firstSeg.Textual()) <= truncateLen {
+				truncateLen -= len(firstSeg.Textual())
+				firstSeg.Text = ""
+			} else {
+				firstSeg.Text = firstSeg.Text[truncateLen:]
+				truncateLen = 0
+			}
+		} else {
+			lastSeg := (*segments)[len(*segments)-1].(*widget.TextSegment)
+
+			if len(lastSeg.Textual()) <= truncateLen {
+				*segments = (*segments)[:len(*segments)-1]
+				truncateLen -= len(lastSeg.Textual())
+			} else {
+				lastSeg.Text = lastSeg.Text[:len(lastSeg.Text)-truncateLen]
+				truncateLen = 0
+			}
+		}
+	}
+
+	return truncatedFirst
+}
+
+func getMaxContentWidth(container *fyne.Container, label *widget.RichText) float32 {
+	return container.Size().Width - label.Position().X
 }
 
 func measureRichText(label *widget.RichText) float32 {
