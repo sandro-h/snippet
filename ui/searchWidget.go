@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/sandro-h/snippet/fuzzy"
 	"github.com/sandro-h/snippet/util"
 )
 
@@ -175,7 +176,7 @@ func (w *SearchWidget) createEntry() {
 		}
 	}
 	w.Entry.OnChanged = func(s string) {
-		matches := util.SearchFuzzyMulti(s, w.snippetLabels, w.snippetContents)
+		matches := fuzzy.SearchFuzzyMulti(s, w.snippetLabels, w.snippetContents)
 		var filteredSnippets []*filteredSnippet
 
 		for _, m := range matches {
@@ -199,7 +200,7 @@ func (w *SearchWidget) createEntry() {
 	}
 }
 
-func createHighlightedSegments(text string, match util.Match) []snippetSegment {
+func createHighlightedSegments(text string, match fuzzy.Match) []snippetSegment {
 	segments := []snippetSegment{{str: text, highlighted: false}}
 	if match.Index > -1 {
 		segments = make([]snippetSegment, 0)
