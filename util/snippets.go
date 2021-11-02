@@ -46,28 +46,39 @@ type ArgResolver interface {
 	Resolve() string
 }
 
-// InputArgResolver marks arguments that require user input.
+// InputResolver marks arguments that require user input.
 // It doesn't actually handle them, that is delegated to the UI code.
-type InputArgResolver struct{}
+type InputResolver struct{}
 
 // Resolve resolves the input argument. In this case it's a NOOP since the UI code handles
 // input args.
-func (m *InputArgResolver) Resolve() string {
+func (m *InputResolver) Resolve() string {
 	return ""
 }
 
-// RandomNumberArgResolver resolves the argument to a random integer number.
-type RandomNumberArgResolver struct {
+// RandomNumberResolver resolves the argument to a random integer number.
+type RandomNumberResolver struct {
 	min int
 	max int
 }
 
 // Resolve returns a random integer number within the resolver range [min,max).
-func (m *RandomNumberArgResolver) Resolve() string {
+func (m *RandomNumberResolver) Resolve() string {
 	s := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(s)
 	num := m.min + r.Intn(m.max-m.min)
 	return strconv.Itoa(num)
+}
+
+// NowResolver resolves the argument to the current date and time.
+type NowResolver struct {
+	format string
+}
+
+// Resolve returns the current date and time, formatted according to the resolver's
+// format string.
+func (m *NowResolver) Resolve() string {
+	return time.Now().Format(m.format)
 }
 
 // LoadSnippets loads a list of snippets from a YAML file.
@@ -199,7 +210,7 @@ func unmarshalArguments(key string, rawValue map[interface{}]interface{}, snippe
 		for i, a := range rawArgList {
 			switch arg := a.(type) {
 			case string:
-				snippet.Args = append(snippet.Args, SnippetArg{Name: arg, Resolver: &InputArgResolver{}})
+				snippet.Args = append(snippet.Args, SnippetArg{Name: arg, Resolver: &InputResolver{}})
 			case map[interface{}]interface{}:
 				parsedArg, err := unmarshalComplexArg(arg)
 				if err != nil {
@@ -229,9 +240,11 @@ func unmarshalComplexArg(rawArg map[interface{}]interface{}) (*SnippetArg, error
 	var err error
 	switch argType {
 	case "input":
-		resolver = &InputArgResolver{}
+		resolver = &InputResolver{}
 	case "random":
 		resolver, err = unmarshalRandomNumberResolver(rawArg)
+	case "now":
+		resolver, err = unmarshalNowResolver(rawArg)
 	default:
 		return nil, fmt.Errorf("unknown type '%s'", argType)
 	}
@@ -243,7 +256,7 @@ func unmarshalComplexArg(rawArg map[interface{}]interface{}) (*SnippetArg, error
 	return &SnippetArg{Name: name.(string), Resolver: resolver}, nil
 }
 
-func unmarshalRandomNumberResolver(rawArg map[interface{}]interface{}) (*RandomNumberArgResolver, error) {
+func unmarshalRandomNumberResolver(rawArg map[interface{}]interface{}) (*RandomNumberResolver, error) {
 	min := 0
 	max := 100
 
@@ -263,7 +276,20 @@ func unmarshalRandomNumberResolver(rawArg map[interface{}]interface{}) (*RandomN
 		}
 	}
 
-	return &RandomNumberArgResolver{min, max}, nil
+	return &RandomNumberResolver{min, max}, nil
+}
+
+func unmarshalNowResolver(rawArg map[interface{}]interface{}) (*NowResolver, error) {
+	format := "2006-01-02 15:04:05"
+	formatVal, ok := rawArg["format"]
+	if ok {
+		format, ok = formatVal.(string)
+		if !ok {
+			return nil, fmt.Errorf("'format' field is not a string")
+		}
+	}
+
+	return &NowResolver{format}, nil
 }
 
 // InstantiateArgs takes a snippet content and a map of argument names to values and replaces
