@@ -2,7 +2,9 @@ package util
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -33,15 +35,39 @@ type Snippet struct {
 	Copy            CopyMode
 }
 
-type ArgType int
-
-const (
-	InputArg ArgType = iota
-)
-
+// SnippetArg defines an argument to be replaced in the snippet.
 type SnippetArg struct {
-	Type ArgType
-	Name string
+	Name     string
+	Resolver ArgResolver
+}
+
+// ArgResolver resolves the argument so it can be replaced in the snippet.
+type ArgResolver interface {
+	Resolve() string
+}
+
+// InputArgResolver marks arguments that require user input.
+// It doesn't actually handle them, that is delegated to the UI code.
+type InputArgResolver struct{}
+
+// Resolve resolves the input argument. In this case it's a NOOP since the UI code handles
+// input args.
+func (m *InputArgResolver) Resolve() string {
+	return ""
+}
+
+// RandomNumberArgResolver resolves the argument to a random integer number.
+type RandomNumberArgResolver struct {
+	min int
+	max int
+}
+
+// Resolve returns a random integer number within the resolver range [min,max).
+func (m *RandomNumberArgResolver) Resolve() string {
+	s := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(s)
+	num := m.min + r.Intn(m.max-m.min)
+	return strconv.Itoa(num)
 }
 
 // LoadSnippets loads a list of snippets from a YAML file.
@@ -171,14 +197,73 @@ func unmarshalArguments(key string, rawValue map[interface{}]interface{}, snippe
 			return fmt.Errorf("error loading snippet %s: 'args' field is not a list of strings", key)
 		}
 		for i, a := range rawArgList {
-			arg, ok := a.(string)
-			if !ok {
-				return fmt.Errorf("error loading snippet %s: 'args[%d]' field is not string", key, i)
+			switch arg := a.(type) {
+			case string:
+				snippet.Args = append(snippet.Args, SnippetArg{Name: arg, Resolver: &InputArgResolver{}})
+			case map[interface{}]interface{}:
+				parsedArg, err := unmarshalComplexArg(arg)
+				if err != nil {
+					return fmt.Errorf("error loading snippet %s: 'args[%d]' - %s", key, i, err.Error())
+				}
+				snippet.Args = append(snippet.Args, *parsedArg)
+			default:
+				return fmt.Errorf("error loading snippet %s: 'args[%d]' field is not string or map", key, i)
 			}
-			snippet.Args = append(snippet.Args, SnippetArg{Type: InputArg, Name: arg})
 		}
 	}
 	return nil
+}
+
+func unmarshalComplexArg(rawArg map[interface{}]interface{}) (*SnippetArg, error) {
+	name, ok := rawArg["name"]
+	if !ok {
+		return nil, fmt.Errorf("arg is missing 'name' field")
+	}
+
+	argType, ok := rawArg["type"]
+	if !ok {
+		return nil, fmt.Errorf("arg is missing 'type' field")
+	}
+
+	var resolver ArgResolver
+	var err error
+	switch argType {
+	case "input":
+		resolver = &InputArgResolver{}
+	case "random":
+		resolver, err = unmarshalRandomNumberResolver(rawArg)
+	default:
+		return nil, fmt.Errorf("unknown type '%s'", argType)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &SnippetArg{Name: name.(string), Resolver: resolver}, nil
+}
+
+func unmarshalRandomNumberResolver(rawArg map[interface{}]interface{}) (*RandomNumberArgResolver, error) {
+	min := 0
+	max := 100
+
+	minVal, ok := rawArg["min"]
+	if ok {
+		min, ok = minVal.(int)
+		if !ok {
+			return nil, fmt.Errorf("'min' field is not an integer")
+		}
+	}
+
+	maxVal, ok := rawArg["max"]
+	if ok {
+		max, ok = maxVal.(int)
+		if !ok {
+			return nil, fmt.Errorf("'max' field is not an integer")
+		}
+	}
+
+	return &RandomNumberArgResolver{min, max}, nil
 }
 
 // InstantiateArgs takes a snippet content and a map of argument names to values and replaces
