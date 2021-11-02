@@ -29,8 +29,19 @@ type Snippet struct {
 	Secret          string
 	SecretDecrypted string
 	SecretLastUsed  time.Time
-	Args            []string
+	Args            []SnippetArg
 	Copy            CopyMode
+}
+
+type ArgType int
+
+const (
+	InputArg ArgType = iota
+)
+
+type SnippetArg struct {
+	Type ArgType
+	Name string
 }
 
 // LoadSnippets loads a list of snippets from a YAML file.
@@ -164,7 +175,7 @@ func unmarshalArguments(key string, rawValue map[interface{}]interface{}, snippe
 			if !ok {
 				return fmt.Errorf("error loading snippet %s: 'args[%d]' field is not string", key, i)
 			}
-			snippet.Args = append(snippet.Args, arg)
+			snippet.Args = append(snippet.Args, SnippetArg{Type: InputArg, Name: arg})
 		}
 	}
 	return nil

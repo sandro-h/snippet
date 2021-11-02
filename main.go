@@ -278,7 +278,15 @@ func listenForHotkeys(w fyne.Window, snippetsFile string, hotkeyCfg hotkeyConfig
 }
 
 func typeArgSnippet(snippet *util.Snippet, mainWindow fyne.Window, argWin *ui.ArgWindow) {
-	argWin.ShowWithArgs(snippet.Args, func(vals map[string]string) {
+	var inputArgs []string
+	for _, arg := range snippet.Args {
+		switch arg.Type {
+		case util.InputArg:
+			inputArgs = append(inputArgs, arg.Name)
+		}
+	}
+
+	argWin.ShowWithArgs(inputArgs, func(vals map[string]string) {
 		typing.TypeSnippet(util.InstantiateArgs(snippet.Content, vals), snippet.Copy, &cfg.Config)
 	}, func() {
 		mainWindow.Show()
