@@ -33,6 +33,11 @@ a new window pops up to fill out the arguments.
 3. Press `enter` to confirm the arguments and type the snippet. Any empty arguments lead to empty replacements in the snippet.
 4. Press `escape` to cancel and return to the main snippet window.
 
+#### Automatic snippet arguments
+
+Besides the default arguments which require user input, you can declare certain automatically resolved arguments. For example to use the current
+date in the snippet.
+
 See the [snippet_sample.yml](snippet_sample.yml) for configuring a snippet with arguments.
 
 ### Secret snippets

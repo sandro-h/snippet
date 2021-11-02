@@ -282,7 +282,7 @@ func typeArgSnippet(snippet *util.Snippet, mainWindow fyne.Window, argWin *ui.Ar
 	vals := make(map[string]string)
 	for _, arg := range snippet.Args {
 		switch arg.Resolver.(type) {
-		case *util.InputResolver:
+		case *util.ManualResolver:
 			inputArgs = append(inputArgs, arg.Name)
 		default:
 			vals[arg.Name] = arg.Resolver.Resolve()

@@ -16,6 +16,36 @@ docker bash:
   content: docker exec -ti {container} bash
   args: [container]
 
+# A snippet with automatic arguments. These are resolved without user input.
+# All possible automatic arguments are listed here.
+crazy string:
+  content: "{my-date}: {my-number}"
+  args:
+    - name: my-date
+      # Print the current date and time
+      type: now
+      # The format, using the standard Golang time formatting. Default: 2006-01-02 15:04:05
+      format: "02-Jan-2006"
+    - name: my-number
+      # Picks a random number
+      type: random
+      # The lower bound of the random number, inclusive. Default: 0
+      min: 10
+      # The upper bound of the random number, exclusive. Default: 100
+      max: 50
+
+# Snippets can have a mix of automatic and manual arguments.
+my message:
+  content: "{my-date}: {my-message} {my-comment}"
+  args:
+    - name: my-date
+      type: now
+    # Short form of a manual argument
+    - my-message
+    # Long form of a manual argument
+    - name: my-comment
+      type: manual
+
 # Secret snippet
 keystore passphrase:
   secret: AES256:MzVjOTYwZTJhNmVjNmFlNTRjM2FiOWM4Y2E3ZDJjZGUzYmZmN2JhZTJkYWFmZmViZjRjMDQ0YTc4ZGViMTY1ZAowOGM4MjQ4ZDE4YWUzNTcxMWM5MzMyMmY2NjNmOGZlNjY1YmNiN2EwOWYxMmE4Mjk5OTI3Y2FmNTA4NTY3Mjg3CmU2YmNiZDRhZGRhZjU3YjIxZTcwOTdiOGY1ZjE4ZTA2

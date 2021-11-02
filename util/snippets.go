@@ -46,13 +46,13 @@ type ArgResolver interface {
 	Resolve() string
 }
 
-// InputResolver marks arguments that require user input.
+// ManualResolver marks arguments that require user input.
 // It doesn't actually handle them, that is delegated to the UI code.
-type InputResolver struct{}
+type ManualResolver struct{}
 
 // Resolve resolves the input argument. In this case it's a NOOP since the UI code handles
-// input args.
-func (m *InputResolver) Resolve() string {
+// manual args.
+func (m *ManualResolver) Resolve() string {
 	return ""
 }
 
@@ -210,7 +210,7 @@ func unmarshalArguments(key string, rawValue map[interface{}]interface{}, snippe
 		for i, a := range rawArgList {
 			switch arg := a.(type) {
 			case string:
-				snippet.Args = append(snippet.Args, SnippetArg{Name: arg, Resolver: &InputResolver{}})
+				snippet.Args = append(snippet.Args, SnippetArg{Name: arg, Resolver: &ManualResolver{}})
 			case map[interface{}]interface{}:
 				parsedArg, err := unmarshalComplexArg(arg)
 				if err != nil {
@@ -239,8 +239,8 @@ func unmarshalComplexArg(rawArg map[interface{}]interface{}) (*SnippetArg, error
 	var resolver ArgResolver
 	var err error
 	switch argType {
-	case "input":
-		resolver = &InputResolver{}
+	case "manual":
+		resolver = &ManualResolver{}
 	case "random":
 		resolver, err = unmarshalRandomNumberResolver(rawArg)
 	case "now":
